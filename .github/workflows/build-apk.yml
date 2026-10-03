@@ -1,0 +1,755 @@
+name: Build Light APK with In-Game Data Downloader (Pause/Resume & OBB)
+
+on:
+  push:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build Light APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Generate Complete Interactive Game HTML & Downloader UI
+        run: |
+          mkdir -p www
+          cat << 'EOF' > www/index.html
+          <!DOCTYPE html>
+          <html lang="ar" dir="rtl">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+            <title>قول يا معلّم 👑</title>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@500;800;900&display=swap" rel="stylesheet">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            <style>
+              * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; margin: 0; padding: 0; }
+              body {
+                font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+                background: linear-gradient(165deg, #090d16 0%, #111827 50%, #1e1b4b 100%);
+                min-height: 100vh;
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                color: #ffffff;
+                direction: rtl;
+              }
+              .hidden { display: none !important; }
+              #appContainer {
+                width: 100%;
+                max-width: 440px;
+                height: 100vh;
+                height: 100dvh;
+                background-color: #020617;
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                overflow: hidden;
+              }
+              .clay-card { background: rgba(255, 255, 255, 0.96); border-radius: 24px; box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35); }
+              .btn-3d { transition: all 0.15s ease; box-shadow: 0 5px 0 rgba(0,0,0,0.35); cursor: pointer; }
+              .btn-3d:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.35); }
+              .font-tajawal { font-family: 'Tajawal', sans-serif; }
+              .mic-recording-pulse { animation: mic-wave 1.2s infinite; }
+              @keyframes mic-wave { 0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8); } 50% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); } }
+            </style>
+          </head>
+          <body>
+            <div id="appContainer">
+
+              <!-- HEADER -->
+              <header style="width:100%; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; background:rgba(15,23,42,0.9); border-bottom:1px solid rgba(255,255,255,0.1);">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div style="background:#fbbf24; color:#451a03; font-weight:900; font-size:12px; padding:4px 12px; border-radius:9999px;">
+                    ⭐ <span id="starsBalanceDisplay">1000</span> نجمة
+                  </div>
+                  <span style="font-size:12px; font-weight:bold;">المستوى: <span id="currentLevelNav" style="color:#fde047; font-weight:900;">1</span></span>
+                </div>
+                <div>
+                  <span id="modelStatusBadge" style="background:#ef4444; color:white; font-size:10px; font-weight:bold; padding:4px 8px; border-radius:9999px;">جاري فحص البيانات...</span>
+                </div>
+              </header>
+
+              <!-- PLAY SCREEN -->
+              <div id="screenPlay" style="flex:1; display:flex; flex-direction:column; justify-content:space-between; padding:16px;">
+                <div style="display:flex; justify-content:space-between; background:rgba(255,255,255,0.1); padding:8px 16px; border-radius:16px; font-size:12px; font-weight:bold;">
+                  <div>المستوى: <span style="color:#fde047;">#1</span></div>
+                  <div>الوقت: <span id="playTimerText" style="color:#fde047; font-weight:900;">60s</span></div>
+                </div>
+
+                <!-- MIC BUTTON -->
+                <div style="margin:8px 0;">
+                  <button id="btnMicAction" onclick="window.game.toggleMic()" style="width:100%; padding:14px; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:8px; background:#4f46e5; color:white; font-weight:900; font-size:14px; border:none;" class="btn-3d">
+                    <i class="fa-solid fa-microphone"></i>
+                    <span id="micActionLabel">اضغط للتحدث 🎙️</span>
+                  </button>
+                </div>
+
+                <!-- CARD -->
+                <div class="clay-card" style="padding:16px; text-align:center; border:4px solid #c7d2fe;">
+                  <span style="font-size:11px; font-weight:900; color:#312e81; background:#e0e7ff; padding:2px 12px; border-radius:9999px;">أكلات شعبية</span>
+                  <div id="playWord" class="font-tajawal" style="font-size:28px; font-weight:900; color:#0f172a; margin:8px 0;">كشري</div>
+
+                  <!-- TABOOS -->
+                  <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:8px; text-align:right;">
+                    <span style="color:#b91c1c; font-weight:900; font-size:12px; display:block; margin-bottom:4px;">الممنوعات:</span>
+                    <div id="playTaboosContainer" style="display:flex; gap:6px; font-size:12px; font-weight:bold; color:#1e293b;">
+                      <span style="background:white; padding:2px 8px; border-radius:6px; border:1px solid #fca5a5;">صلصة</span>
+                      <span style="background:white; padding:2px 8px; border-radius:6px; border:1px solid #fca5a5;">عدس</span>
+                    </div>
+                  </div>
+
+                  <!-- RADAR -->
+                  <div style="margin-top:12px; text-align:right;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold; color:#334155; margin-bottom:4px;">
+                      <span>اقتناع الذكاء الاصطناعي:</span>
+                      <span id="aiConfidencePct" style="font-weight:900; color:#4338ca;">0%</span>
+                    </div>
+                    <div style="width:100%; background:#e2e8f0; border-radius:9999px; height:10px; overflow:hidden;">
+                      <div id="aiConfidenceBar" style="background:#10b981; height:10px; width:0%; transition:all 0.3s;"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- LIVE SPEECH BOX -->
+                <div style="background:rgba(15,23,42,0.9); border-radius:16px; padding:12px; border:1px solid rgba(255,255,255,0.1); text-align:right;">
+                  <div style="display:flex; justify-content:space-between; font-size:11px; color:#fde047; font-weight:bold; margin-bottom:4px;">
+                    <span>ما يسمعه المايك الآن:</span>
+                    <span id="aiStatusPill" style="color:#34d399;">جاهز للتحليل ⚡</span>
+                  </div>
+                  <div id="playTranscript" style="font-size:12px; font-weight:bold; color:white; min-height:30px;">
+                    تحدث عبر المايك وسيقوم الذكاء الاصطناعي بتحليله أوفلاين فوراً...
+                  </div>
+                </div>
+
+                <!-- NEXT BUTTON -->
+                <button id="btnNextStage" disabled style="width:100%; padding:14px; background:#1e293b; color:#6b7280; border-radius:16px; font-weight:900; font-size:14px; border:none;" class="btn-3d">
+                  في انتظار الشرح... (0%)
+                </button>
+              </div>
+
+              <!-- MODAL: DOWNLOAD GAME DATA DIALOG -->
+              <div id="modalDownload" class="hidden" style="position:absolute; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:100; display:flex; align-items:center; justify-content:center; padding:16px;">
+                <div class="clay-card" style="width:100%; max-width:380px; padding:24px; text-align:center;">
+                  <div style="font-size:40px; margin-bottom:8px;">📦</div>
+                  <h3 class="font-tajawal" style="font-size:20px; font-weight:900; color:#0f172a; margin-bottom:8px;">تحميل بيانات الصوت للعبة</h3>
+                  <p style="font-size:12px; color:#475569; font-weight:bold; line-height:1.6; margin-bottom:16px;">
+                    لتتمكن اللعبة من تحليل صوتك بدقة وبدون الحاجة لإنترنت نهائياً (Offline)، يجب تحميل حزمة البيانات الصوتية لمرة واحدة وحفظها في مجلد اللعبة.
+                  </p>
+
+                  <!-- PROGRESS BAR (HIDDEN INITIALLY) -->
+                  <div id="downloadProgressArea" class="hidden" style="margin-bottom:16px; text-align:right;">
+                    <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold; color:#1e293b; margin-bottom:4px;">
+                      <span id="downloadStatusText">جاري الاتصال...</span>
+                      <span id="downloadPctText" style="color:#4f46e5; font-weight:900;">0%</span>
+                    </div>
+                    <div style="width:100%; background:#e2e8f0; height:12px; border-radius:9999px; overflow:hidden;">
+                      <div id="downloadProgressBar" style="background:linear-gradient(to right, #4f46e5, #10b981); width:0%; height:12px; transition:width 0.2s;"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:10px; color:#64748b; font-weight:bold; margin-top:4px;">
+                      <span id="downloadSizeText">0 MB / -- MB</span>
+                      <span id="downloadSpeedText">0 KB/s</span>
+                    </div>
+                  </div>
+
+                  <!-- ACTIONS -->
+                  <div id="downloadActionButtons" style="display:flex; gap:8px;">
+                    <button id="btnStartDownload" onclick="window.game.startDataDownload()" style="flex:1; padding:12px; background:#10b981; color:white; font-weight:900; border-radius:12px; border:none;" class="btn-3d">
+                      بدء التحميل الآن 🚀
+                    </button>
+                  </div>
+                  
+                  <div id="downloadControlButtons" class="hidden" style="display:flex; gap:8px;">
+                    <button id="btnPauseResume" onclick="window.game.togglePauseResume()" style="flex:1; padding:12px; background:#f59e0b; color:white; font-weight:900; border-radius:12px; border:none;" class="btn-3d">
+                      إيقاف مؤقت ⏸️
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <script>
+              class GameApp {
+                constructor() {
+                  this.isListening = false;
+                  this.isModelReady = false;
+                  this.isDownloading = false;
+                  this.isPaused = false;
+                  this.init();
+                }
+
+                init() {
+                  setTimeout(() => {
+                    this.checkModelStatus();
+                  }, 500);
+                }
+
+                checkModelStatus() {
+                  if (window.AndroidSpeech && window.AndroidSpeech.isModelAvailable) {
+                    if (window.AndroidSpeech.isModelAvailable()) {
+                      this.onModelReady();
+                    } else {
+                      this.showDownloadModal();
+                    }
+                  } else {
+                    // Fallback
+                    setTimeout(() => this.checkModelStatus(), 500);
+                  }
+                }
+
+                showDownloadModal() {
+                  const modal = document.getElementById('modalDownload');
+                  modal.classList.remove('hidden');
+                }
+
+                startDataDownload() {
+                  document.getElementById('btnStartDownload').classList.add('hidden');
+                  document.getElementById('downloadProgressArea').classList.remove('hidden');
+                  document.getElementById('downloadControlButtons').classList.remove('hidden');
+                  this.isDownloading = true;
+
+                  if (window.AndroidSpeech && window.AndroidSpeech.startDownload) {
+                    window.AndroidSpeech.startDownload();
+                  }
+                }
+
+                togglePauseResume() {
+                  const btn = document.getElementById('btnPauseResume');
+                  if (!this.isPaused) {
+                    if (window.AndroidSpeech && window.AndroidSpeech.pauseDownload) {
+                      window.AndroidSpeech.pauseDownload();
+                    }
+                    this.isPaused = true;
+                    btn.innerText = "استئناف التحميل ▶️";
+                    btn.style.background = "#10b981";
+                    document.getElementById('downloadStatusText').innerText = "تم الإيقاف مؤقتاً";
+                  } else {
+                    if (window.AndroidSpeech && window.AndroidSpeech.resumeDownload) {
+                      window.AndroidSpeech.resumeDownload();
+                    }
+                    this.isPaused = false;
+                    btn.innerText = "إيقاف مؤقت ⏸️";
+                    btn.style.background = "#f59e0b";
+                    document.getElementById('downloadStatusText').innerText = "جاري التحميل...";
+                  }
+                }
+
+                updateDownloadProgress(pct, downloadedMb, totalMb, speedKb) {
+                  document.getElementById('downloadProgressBar').style.width = `${pct}%`;
+                  document.getElementById('downloadPctText').innerText = `${pct}%`;
+                  document.getElementById('downloadSizeText').innerText = `${downloadedMb} MB / ${totalMb} MB`;
+                  document.getElementById('downloadSpeedText').innerText = `${speedKb} KB/s`;
+                  document.getElementById('downloadStatusText').innerText = "جاري التنزيل...";
+                }
+
+                onDownloadComplete() {
+                  document.getElementById('downloadStatusText').innerText = "جاري فك الضغط والتثبيت في مجلد اللعبة...";
+                  document.getElementById('downloadProgressBar').style.width = "100%";
+                  document.getElementById('downloadControlButtons').classList.add('hidden');
+                }
+
+                onModelReady() {
+                  this.isModelReady = true;
+                  const modal = document.getElementById('modalDownload');
+                  if (modal) modal.classList.add('hidden');
+
+                  const badge = document.getElementById('modelStatusBadge');
+                  badge.innerText = "البيانات جاهزة (أوفلاين 100%) ✓";
+                  badge.style.background = "#10b981";
+                }
+
+                toggleMic() {
+                  if (!this.isModelReady) {
+                    this.showDownloadModal();
+                    return;
+                  }
+
+                  const btn = document.getElementById('btnMicAction');
+                  const label = document.getElementById('micActionLabel');
+
+                  if (!this.isListening) {
+                    if (window.AndroidSpeech) {
+                      window.AndroidSpeech.startListening();
+                    }
+                    this.isListening = true;
+                    btn.style.background = "#10b981";
+                    btn.classList.add('mic-recording-pulse');
+                    label.innerText = "🔴 يتم الاستماع أوفلاين.. تكلّم!";
+                  } else {
+                    if (window.AndroidSpeech) {
+                      window.AndroidSpeech.stopListening();
+                    }
+                    this.isListening = false;
+                    btn.style.background = "#4f46e5";
+                    btn.classList.remove('mic-recording-pulse');
+                    label.innerText = "اضغط للتحدث 🎙️";
+                  }
+                }
+
+                onSpeech(text) {
+                  document.getElementById('playTranscript').innerText = `"${text}"`;
+                  const clean = text.toLowerCase();
+                  if (clean.includes("كشري") || clean.includes("طعام") || clean.includes("مصري")) {
+                    document.getElementById('aiConfidencePct').innerText = "85%";
+                    document.getElementById('aiConfidenceBar').style.width = "85%";
+                    const nextBtn = document.getElementById('btnNextStage');
+                    nextBtn.disabled = false;
+                    nextBtn.style.background = "#10b981";
+                    nextBtn.style.color = "white";
+                    nextBtn.innerText = "أحسنت! المستوى التالي 🚀";
+                  }
+                }
+              }
+
+              window.game = new GameApp();
+
+              // NATIVE EVENT CALLS
+              window.onNativeDownloadProgress = function(pct, downMb, totalMb, speed) {
+                window.game.updateDownloadProgress(pct, downMb, totalMb, speed);
+              };
+
+              window.onNativeDownloadComplete = function() {
+                window.game.onDownloadComplete();
+              };
+
+              window.onNativeModelReady = function() {
+                window.game.onModelReady();
+              };
+
+              window.onNativeSpeechResult = function(text) {
+                window.game.onSpeech(text);
+              };
+            </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Initialize Capacitor & Configure Android Project
+        run: |
+          npm init -y
+          npm install @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor/android@6.0.0 @capacitor/app@6.0.0
+          npx cap init "QoolYaM3alemPro" "com.qoolyam3alem.pro" --web-dir www
+          npx cap add android
+          npx cap sync android
+
+      - name: Inject Vosk Dependencies into Gradle
+        run: |
+          BUILD_GRADLE="android/app/build.gradle"
+          sed -i '/dependencies {/a \    implementation "net.java.dev.jna:jna:5.13.0@aar"\n    implementation "com.alphacephei:vosk-android:0.3.47"' $BUILD_GRADLE
+
+      - name: Configure Android Permissions & Manifest
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />' $MANIFEST
+
+      - name: Generate MainActivity with Resumable Downloader & Auto-Link
+        run: |
+          MAIN_ACTIVITY="android/app/src/main/java/com/qoolyam3alem/pro/MainActivity.java"
+          cat << 'EOF' > $MAIN_ACTIVITY
+          package com.qoolyam3alem.pro;
+
+          import android.Manifest;
+          import android.content.pm.PackageManager;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.PermissionRequest;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebView;
+
+          import com.getcapacitor.BridgeActivity;
+
+          import org.json.JSONObject;
+          import org.vosk.Model;
+          import org.vosk.Recognizer;
+          import org.vosk.android.RecognitionListener;
+          import org.vosk.android.SpeechService;
+
+          import java.io.BufferedInputStream;
+          import java.io.File;
+          import java.io.FileInputStream;
+          import java.io.FileOutputStream;
+          import java.io.InputStream;
+          import java.io.OutputStream;
+          import java.net.HttpURLConnection;
+          import java.net.URL;
+          import java.util.zip.ZipEntry;
+          import java.util.zip.ZipInputStream;
+
+          public class MainActivity extends BridgeActivity implements RecognitionListener {
+              private Model model;
+              private SpeechService speechService;
+              private boolean isModelLoaded = false;
+              private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+              // URL النموذج الصوتي (حزمة اللغة العربية)
+              private static final String MODEL_DOWNLOAD_URL = "https://alphacephei.com/vosk/models/vosk-model-ar-mgb2-0.4.zip";
+              private static final String MODEL_FOLDER_NAME = "model-ar";
+
+              private boolean isDownloadPaused = false;
+              private boolean isDownloading = false;
+              private Thread downloadThread;
+
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+
+                  if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                      requestPermissions(new String[]{
+                          Manifest.permission.RECORD_AUDIO,
+                          Manifest.permission.MODIFY_AUDIO_SETTINGS
+                      }, 1001);
+                  }
+
+                  // فحص هل البيانات موجودة في مجلد اللعبة
+                  checkAndLoadLocalModel();
+              }
+
+              @Override
+              public void onStart() {
+                  super.onStart();
+                  if (this.bridge != null && this.bridge.getWebView() != null) {
+                      WebView webView = this.bridge.getWebView();
+                      webView.setWebChromeClient(new WebChromeClient() {
+                          @Override
+                          public void onPermissionRequest(final PermissionRequest request) {
+                              runOnUiThread(() -> request.grant(request.getResources()));
+                          }
+                      });
+                      webView.addJavascriptInterface(new NativeSpeechBridge(), "AndroidSpeech");
+                  }
+              }
+
+              private File getGameStorageDir() {
+                  // استخدام مجلد اللعبة المخصص في الذاكرة الخارجية (Android/data/.../files أو obb)
+                  File dir = getExternalFilesDir(null);
+                  if (dir == null) {
+                      dir = getFilesDir();
+                  }
+                  return dir;
+              }
+
+              private File getModelDirectory() {
+                  return new File(getGameStorageDir(), MODEL_FOLDER_NAME);
+              }
+
+              private void checkAndLoadLocalModel() {
+                  File modelDir = getModelDirectory();
+                  // التأكد من أن المجلد موجود ويحتوي على ملفات النموذج
+                  if (modelDir.exists() && new File(modelDir, "conf/model.conf").exists()) {
+                      loadModelFromPath(modelDir.getAbsolutePath());
+                  } else {
+                      isModelLoaded = false;
+                  }
+              }
+
+              private void loadModelFromPath(String path) {
+                  new Thread(() -> {
+                      try {
+                          model = new Model(path);
+                          isModelLoaded = true;
+                          mainHandler.post(() -> {
+                              evaluateJavascript("if(window.onNativeModelReady){window.onNativeModelReady();}");
+                          });
+                      } catch (Exception e) {
+                          e.printStackTrace();
+                          isModelLoaded = false;
+                      }
+                  }).start();
+              }
+
+              // ==========================================
+              // نظام التحميل القابل للتوقف والاستئناف (RESUMABLE DOWNLOADER)
+              // ==========================================
+              public void startModelDownload() {
+                  if (isDownloading) return;
+                  isDownloadPaused = false;
+                  isDownloading = true;
+
+                  downloadThread = new Thread(() -> {
+                      File storageDir = getGameStorageDir();
+                      File zipFile = new File(storageDir, "model_temp.zip");
+                      long downloadedBytes = 0;
+
+                      if (zipFile.exists()) {
+                          downloadedBytes = zipFile.length();
+                      }
+
+                      try {
+                          URL url = new URL(MODEL_DOWNLOAD_URL);
+                          HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                          conn.setConnectTimeout(15000);
+                          conn.setReadTimeout(15000);
+
+                          // دعم الاستئناف عبر HTTP Range
+                          if (downloadedBytes > 0) {
+                              conn.setRequestProperty("Range", "bytes=" + downloadedBytes + "-");
+                          }
+
+                          int responseCode = conn.getResponseCode();
+                          long totalSize = conn.getContentLengthLong();
+                          if (downloadedBytes > 0 && responseCode == HttpURLConnection.HTTP_PARTIAL) {
+                              totalSize += downloadedBytes;
+                          }
+
+                          InputStream input = new BufferedInputStream(conn.getInputStream());
+                          OutputStream output = new FileOutputStream(zipFile, downloadedBytes > 0);
+
+                          byte[] buffer = new byte[8192];
+                          int count;
+                          long startTime = System.currentTimeMillis();
+                          long lastUpdateTime = 0;
+                          long bytesSinceLastUpdate = 0;
+
+                          while ((count = input.read(buffer)) != -1) {
+                              if (isDownloadPaused) {
+                                  output.flush();
+                                  output.close();
+                                  input.close();
+                                  conn.disconnect();
+                                  return;
+                              }
+
+                              output.write(buffer, 0, count);
+                              downloadedBytes += count;
+                              bytesSinceLastUpdate += count;
+
+                              long now = System.currentTimeMillis();
+                              if (now - lastUpdateTime > 300) {
+                                  long diffSec = Math.max(1, (now - lastUpdateTime));
+                                  long speedKb = (bytesSinceLastUpdate * 1000) / (diffSec * 1024);
+                                  lastUpdateTime = now;
+                                  bytesSinceLastUpdate = 0;
+
+                                  int pct = (totalSize > 0) ? (int) ((downloadedBytes * 100) / totalSize) : 0;
+                                  int downMb = (int) (downloadedBytes / (1024 * 1024));
+                                  int totMb = (int) (totalSize / (1024 * 1024));
+
+                                  final int fPct = pct;
+                                  final int fDownMb = downMb;
+                                  final int fTotMb = totMb;
+                                  final long fSpeed = speedKb;
+
+                                  mainHandler.post(() -> {
+                                      evaluateJavascript("if(window.onNativeDownloadProgress){window.onNativeDownloadProgress(" +
+                                          fPct + "," + fDownMb + "," + fTotMb + "," + fSpeed + ");}");
+                                  });
+                              }
+                          }
+
+                          output.flush();
+                          output.close();
+                          input.close();
+                          conn.disconnect();
+
+                          // اكتمال التنزيل -> فك الضغط إلى مجلد اللعبة
+                          mainHandler.post(() -> {
+                              evaluateJavascript("if(window.onNativeDownloadComplete){window.onNativeDownloadComplete();}");
+                          });
+
+                          unzipModel(zipFile, getModelDirectory());
+                          zipFile.delete(); // حذف الملف المؤقت بعد فك الضغط
+
+                          // ربط النموذج الصوتي بعد التثبيت
+                          loadModelFromPath(getModelDirectory().getAbsolutePath());
+
+                      } catch (Exception e) {
+                          e.printStackTrace();
+                      } finally {
+                          isDownloading = false;
+                      }
+                  });
+
+                  downloadThread.start();
+              }
+
+              public void pauseModelDownload() {
+                  isDownloadPaused = true;
+                  isDownloading = false;
+              }
+
+              public void resumeModelDownload() {
+                  startModelDownload();
+              }
+
+              private void unzipModel(File zipFile, File targetDir) {
+                  try {
+                      if (!targetDir.exists()) targetDir.mkdirs();
+
+                      ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
+                      ZipEntry entry;
+                      byte[] buffer = new byte[8192];
+
+                      while ((entry = zis.getNextEntry()) != null) {
+                          String name = entry.getName();
+                          // إزالة اسم المجلد الجذري من داخل الـ zip إن وُجد
+                          if (name.contains("/")) {
+                              name = name.substring(name.indexOf("/") + 1);
+                          }
+                          if (name.isEmpty()) continue;
+
+                          File newFile = new File(targetDir, name);
+                          if (entry.isDirectory()) {
+                              newFile.mkdirs();
+                          } else {
+                              new File(newFile.getParent()).mkdirs();
+                              FileOutputStream fos = new FileOutputStream(newFile);
+                              int len;
+                              while ((len = zis.read(buffer)) > 0) {
+                                  fos.write(buffer, 0, len);
+                              }
+                              fos.close();
+                          }
+                          zis.closeEntry();
+                      }
+                      zis.close();
+                  } catch (Exception e) {
+                      e.printStackTrace();
+                  }
+              }
+
+              // ==========================================
+              // محرك التعرف الصوتي (VOSK ENGINE)
+              // ==========================================
+              public void startListening() {
+                  if (!isModelLoaded || model == null) return;
+                  try {
+                      stopListening();
+                      Recognizer recognizer = new Recognizer(model, 16000.0f);
+                      speechService = new SpeechService(recognizer, 16000.0f);
+                      speechService.startListening(this);
+                  } catch (Exception e) {
+                      e.printStackTrace();
+                  }
+              }
+
+              public void stopListening() {
+                  if (speechService != null) {
+                      speechService.stop();
+                      speechService.shutdown();
+                      speechService = null;
+                  }
+              }
+
+              @Override
+              public void onPartialResult(String hypothesis) {
+                  try {
+                      JSONObject obj = new JSONObject(hypothesis);
+                      String partial = obj.optString("partial", "");
+                      if (!partial.trim().isEmpty()) {
+                          sendSpeechResult(partial);
+                      }
+                  } catch (Exception ignored) {}
+              }
+
+              @Override
+              public void onResult(String hypothesis) {
+                  try {
+                      JSONObject obj = new JSONObject(hypothesis);
+                      String text = obj.optString("text", "");
+                      if (!text.trim().isEmpty()) {
+                          sendSpeechResult(text);
+                      }
+                  } catch (Exception ignored) {}
+              }
+
+              @Override
+              public void onFinalResult(String hypothesis) { onResult(hypothesis); }
+              @Override
+              public void onError(Exception exception) {}
+              @Override
+              public void onTimeout() {}
+
+              private void sendSpeechResult(String text) {
+                  String escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\"", "\\\"").replace("\n", " ");
+                  evaluateJavascript("if(window.onNativeSpeechResult){window.onNativeSpeechResult('" + escaped + "');}");
+              }
+
+              private void evaluateJavascript(String script) {
+                  if (this.bridge != null && this.bridge.getWebView() != null) {
+                      this.bridge.getWebView().post(() -> {
+                          this.bridge.getWebView().evaluateJavascript(script, null);
+                      });
+                  }
+              }
+
+              public class NativeSpeechBridge {
+                  @JavascriptInterface
+                  public boolean isModelAvailable() {
+                      return isModelLoaded;
+                  }
+
+                  @JavascriptInterface
+                  public void startDownload() {
+                      mainHandler.post(() -> startModelDownload());
+                  }
+
+                  @JavascriptInterface
+                  public void pauseDownload() {
+                      mainHandler.post(() -> pauseModelDownload());
+                  }
+
+                  @JavascriptInterface
+                  public void resumeDownload() {
+                      mainHandler.post(() -> resumeModelDownload());
+                  }
+
+                  @JavascriptInterface
+                  public void startListening() {
+                      mainHandler.post(() -> MainActivity.this.startListening());
+                  }
+
+                  @JavascriptInterface
+                  public void stopListening() {
+                      mainHandler.post(() -> MainActivity.this.stopListening());
+                  }
+              }
+
+              @Override
+              public void onDestroy() {
+                  stopListening();
+                  super.onDestroy();
+              }
+          }
+          EOF
+
+      - name: Build Android Debug APK with Gradle
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload Final Light APK as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QoolYaM3alem-Light-Resumable-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
