@@ -34,9 +34,10 @@ jobs:
 
       - name: Build Standalone Offline Assets & Generate App
         run: |
-          # 1. تثبيت مكتبات التصميم والأيقونات محلياً لتعمل بدون إنترنت 100%
+          # 1. تثبيت مكتبات التصميم والأيقونات ومكتبات كاباسيتور محلياً
           npm init -y
           npm install -D tailwindcss@3 @fortawesome/fontawesome-free canvas-confetti
+          npm install @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor/android@6.0.0 @capacitor/app@6.0.0 @capacitor/haptics@6.0.0
 
           mkdir -p www/css www/js www/webfonts
 
@@ -214,6 +215,17 @@ jobs:
                   </div>
                 </div>
 
+                <!-- NOTICE BANNER FOR PERMISSION OR MIC ISSUES (NON-BLOCKING) -->
+                <div id="micPermissionAlert" class="hidden w-full bg-amber-500/20 border border-amber-400/40 text-amber-200 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs font-bold mb-1">
+                  <div class="flex items-center space-x-1.5 space-x-reverse">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+                    <span>الميكروفون غير متاح حالياً. يمكنك استخدام الإدخال النصي!</span>
+                  </div>
+                  <button onclick="window.game.promptTextInput()" class="bg-amber-400 text-amber-950 px-2.5 py-0.5 rounded-lg text-[10px] font-black hover:bg-amber-300 active:scale-95 transition">
+                    اكتب الآن
+                  </button>
+                </div>
+
                 <!-- CARD -->
                 <div class="w-full clay-card p-4 relative overflow-hidden text-center shadow-2xl border-4 border-indigo-200">
                   <div class="flex justify-between items-center mb-1">
@@ -223,8 +235,9 @@ jobs:
 
                     <div class="flex items-center space-x-1.5 space-x-reverse">
                       <!-- QUICK TEXT INPUT FALLBACK BUTTON -->
-                      <button onclick="window.game.promptTextInput()" title="كتابة الشرح بالكيبورد" class="p-1 px-2 bg-slate-200 text-slate-800 font-black text-[11px] rounded-xl border border-slate-300 hover:bg-slate-300 active:scale-95 transition">
-                        <i class="fa-solid fa-keyboard"></i>
+                      <button onclick="window.game.promptTextInput()" title="كتابة الشرح بالكيبورد" class="p-1 px-2.5 bg-indigo-50 text-indigo-900 font-black text-[11px] rounded-xl border border-indigo-200 hover:bg-indigo-100 active:scale-95 transition flex items-center space-x-1 space-x-reverse shadow-sm">
+                        <i class="fa-solid fa-keyboard text-indigo-600"></i>
+                        <span>كتابة</span>
                       </button>
 
                       <!-- HINT PURCHASE BUTTON -->
@@ -280,7 +293,7 @@ jobs:
                     <span id="aiStatusPill" class="text-amber-300 font-mono text-[10px]">المايك متوقف (اضغط للتحدث) 🎙️</span>
                   </div>
                   <div id="playTranscript" class="text-xs font-bold text-white min-h-[30px] max-h-[36px] overflow-hidden leading-tight">
-                    اضغط على زر الميكروفون بالأعلى وتحدث بحرية ليشرح الذكاء الاصطناعي كلماتك...
+                    اضغط على زر الميكروفون بالأعلى أو زر الكتابة ⌨️ لبدء الشرح...
                   </div>
                 </div>
 
@@ -396,66 +409,244 @@ jobs:
 
             <!-- JAVASCRIPT GAME ENGINE -->
             <script>
+              // ==========================================
+              // 1. ADVANCED HAPTICS MANAGER (Capacitor & Web Fallback)
+              // ==========================================
+              class HapticsManager {
+                constructor() {
+                  this.haptics = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) || null;
+                }
+
+                getPlugin() {
+                  if (!this.haptics && window.Capacitor && window.Capacitor.Plugins) {
+                    this.haptics = window.Capacitor.Plugins.Haptics;
+                  }
+                  return this.haptics;
+                }
+
+                // اهتزاز ناعم وخفيف للنقر واكتشاف الدلالات
+                async lightImpact() {
+                  try {
+                    const plugin = this.getPlugin();
+                    if (plugin && plugin.impact) {
+                      await plugin.impact({ style: 'LIGHT' });
+                      return;
+                    }
+                  } catch (e) {}
+
+                  // Fallback: Web Vibration API
+                  if ('vibrate' in navigator) {
+                    try { navigator.vibrate(35); } catch(e) {}
+                  }
+                }
+
+                // اهتزاز نجاح واكتمال المرحلة
+                async successNotification() {
+                  try {
+                    const plugin = this.getPlugin();
+                    if (plugin && plugin.notification) {
+                      await plugin.notification({ type: 'SUCCESS' });
+                      return;
+                    }
+                  } catch (e) {}
+
+                  // Fallback: نمط اهتزاز نجاح متتابع ناعم
+                  if ('vibrate' in navigator) {
+                    try { navigator.vibrate([60, 40, 80]); } catch(e) {}
+                  }
+                }
+
+                // اهتزاز تحذيري قوي عند الوقوع في محظور (Bust)
+                async errorNotification() {
+                  try {
+                    const plugin = this.getPlugin();
+                    if (plugin && plugin.notification) {
+                      await plugin.notification({ type: 'ERROR' });
+                      return;
+                    }
+                  } catch (e) {}
+
+                  // Fallback: نمط اهتزاز تحذيري ثنائي حاد
+                  if ('vibrate' in navigator) {
+                    try { navigator.vibrate([90, 50, 150]); } catch(e) {}
+                  }
+                }
+              }
+
+              const haptics = new HapticsManager();
+
+              // ==========================================
+              // 2. ENHANCED SOUND FX ENGINE (Synthesizer + Dynamic Shaping)
+              // ==========================================
               class SoundFxManager {
                 constructor() {
                   this.ctx = null;
                   this.enabled = true;
+                  this.compressor = null;
+                  this.samples = {}; // جاهز لاستقبال ملفات صوتية حقيقية AudioBuffer عند التزويد
                 }
+
                 init() {
                   if (!this.ctx) {
                     const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (AudioContext) this.ctx = new AudioContext();
+                    if (AudioContext) {
+                      this.ctx = new AudioContext();
+                      // إعداد موازن ديناميكي لتصفية الصوت وإعطائه عمقاً واقعياً
+                      this.compressor = this.ctx.createDynamicsCompressor();
+                      this.compressor.threshold.setValueAtTime(-20, this.ctx.currentTime);
+                      this.compressor.knee.setValueAtTime(30, this.ctx.currentTime);
+                      this.compressor.ratio.setValueAtTime(10, this.ctx.currentTime);
+                      this.compressor.attack.setValueAtTime(0, this.ctx.currentTime);
+                      this.compressor.release.setValueAtTime(0.25, this.ctx.currentTime);
+                      this.compressor.connect(this.ctx.destination);
+                    }
                   }
                   if (this.ctx && this.ctx.state === 'suspended') {
                     this.ctx.resume();
                   }
                 }
-                playTone(freq, type = 'sine', duration = 0.12, vol = 0.2) {
+
+                getDestination() {
+                  return this.compressor || (this.ctx ? this.ctx.destination : null);
+                }
+
+                // نغمة كليك واقعية ذات طبقتين مع مرشح تمرير منخفض (Realistic Mechanical Click)
+                playClick() {
                   if (!this.enabled) return;
                   try {
                     this.init();
                     if (!this.ctx) return;
+                    const now = this.ctx.currentTime;
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
-                    osc.type = type;
-                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + duration);
+                    const filter = this.ctx.createBiquadFilter();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(1200, now);
+                    osc.frequency.exponentialRampToValueAtTime(120, now + 0.04);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(2500, now);
+
+                    gain.gain.setValueAtTime(0.22, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.getDestination());
+
+                    osc.start(now);
+                    osc.stop(now + 0.045);
                   } catch(e) {}
                 }
-                playClick() { this.playTone(700, 'sine', 0.05, 0.18); }
+
                 playStageStart() {
-                  this.playTone(440, 'triangle', 0.1, 0.2);
-                  setTimeout(() => this.playTone(554.37, 'triangle', 0.12, 0.2), 80);
-                  setTimeout(() => this.playTone(659.25, 'triangle', 0.2, 0.25), 160);
+                  if (!this.enabled) return;
+                  const notes = [
+                    { f: 440.00, t: 0.00, d: 0.09 },
+                    { f: 554.37, t: 0.08, d: 0.09 },
+                    { f: 659.25, t: 0.16, d: 0.16 }
+                  ];
+                  notes.forEach(n => {
+                    setTimeout(() => this.playSmoothChime(n.f, n.d, 0.22), n.t * 1000);
+                  });
                 }
+
                 playHintReveal() {
-                  this.playTone(987.77, 'sine', 0.08, 0.25);
-                  setTimeout(() => this.playTone(1318.51, 'sine', 0.25, 0.3), 70);
+                  if (!this.enabled) return;
+                  this.playSmoothChime(987.77, 0.09, 0.24);
+                  setTimeout(() => this.playSmoothChime(1318.51, 0.22, 0.28), 75);
                 }
+
                 playClueDetected() {
-                  this.playTone(600, 'sine', 0.08, 0.2);
-                  setTimeout(() => this.playTone(800, 'sine', 0.15, 0.25), 60);
+                  if (!this.enabled) return;
+                  this.playSmoothChime(659.25, 0.07, 0.22);
+                  setTimeout(() => this.playSmoothChime(880.00, 0.14, 0.26), 65);
                 }
+
+                // صفارة إنذار كرتونية واقعية وتحذيرية
                 playTabooAlarm() {
-                  this.playTone(180, 'sawtooth', 0.35, 0.35);
-                  setTimeout(() => this.playTone(150, 'sawtooth', 0.4, 0.35), 150);
+                  if (!this.enabled) return;
+                  try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(320, now);
+                    osc.frequency.linearRampToValueAtTime(140, now + 0.22);
+
+                    gain.gain.setValueAtTime(0.28, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+                    osc.connect(gain);
+                    gain.connect(this.getDestination());
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+
+                    // نغمة ثانوية هابطة
+                    setTimeout(() => {
+                      if (!this.ctx) return;
+                      const t2 = this.ctx.currentTime;
+                      const osc2 = this.ctx.createOscillator();
+                      const gain2 = this.ctx.createGain();
+                      osc2.type = 'sawtooth';
+                      osc2.frequency.setValueAtTime(260, t2);
+                      osc2.frequency.linearRampToValueAtTime(90, t2 + 0.24);
+                      gain2.gain.setValueAtTime(0.3, t2);
+                      gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.26);
+                      osc2.connect(gain2);
+                      gain2.connect(this.getDestination());
+                      osc2.start(t2);
+                      osc2.stop(t2 + 0.27);
+                    }, 110);
+                  } catch(e) {}
                 }
+
                 playSuccessFanfare() {
-                  const notes = [523.25, 659.25, 783.99, 1046.50];
-                  notes.forEach((freq, idx) => {
-                    setTimeout(() => this.playTone(freq, 'sine', 0.18, 0.3), idx * 100);
+                  if (!this.enabled) return;
+                  const notes = [
+                    { f: 523.25, d: 0.12 }, // C5
+                    { f: 659.25, d: 0.12 }, // E5
+                    { f: 783.99, d: 0.14 }, // G5
+                    { f: 1046.50, d: 0.35 } // C6
+                  ];
+                  notes.forEach((n, i) => {
+                    setTimeout(() => this.playSmoothChime(n.f, n.d, 0.28), i * 95);
                   });
                 }
+
                 playReward() {
-                  const notes = [440, 554, 659, 880];
+                  if (!this.enabled) return;
+                  const notes = [440, 554.37, 659.25, 880];
                   notes.forEach((freq, idx) => {
-                    setTimeout(() => this.playTone(freq, 'triangle', 0.2, 0.25), idx * 90);
+                    setTimeout(() => this.playSmoothChime(freq, 0.2, 0.25), idx * 85);
                   });
+                }
+
+                playSmoothChime(freq, duration = 0.15, vol = 0.2) {
+                  if (!this.enabled) return;
+                  try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(vol, now + 0.015);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                    osc.connect(gain);
+                    gain.connect(this.getDestination());
+                    osc.start(now);
+                    osc.stop(now + duration);
+                  } catch(e) {}
                 }
               }
 
@@ -717,6 +908,11 @@ jobs:
                   this.accumulatedWordsCount = 0;
                   this.hasPrimedMic = false;
 
+                  // إدارة استقرار الميكروفون
+                  this.speechRestartTimer = null;
+                  this.speechErrorCount = 0;
+                  this.isRecognitionStarting = false;
+
                   this.loadProgress();
                   this.initSoundState();
                   this.primeMicrophoneHardware();
@@ -764,6 +960,7 @@ jobs:
                 }
 
                 toggleSound() {
+                  haptics.lightImpact();
                   this.progress.soundEnabled = !this.progress.soundEnabled;
                   soundFx.enabled = this.progress.soundEnabled;
                   this.saveProgress();
@@ -792,17 +989,30 @@ jobs:
                       }
                     }).then((stream) => {
                       this.hasPrimedMic = true;
-                      stream.getTracks().forEach(track => track.stop()); // تحرير المايك فورا وعدم تركه يسجل
+                      stream.getTracks().forEach(track => track.stop()); // تحرير المايك فوراً
+                      this.hideMicPermissionAlert();
                     }).catch(e => {
                       console.warn("Hardware mic prime notice:", e);
+                      this.showMicPermissionAlert();
                     });
                   }
+                }
+
+                showMicPermissionAlert() {
+                  const el = document.getElementById('micPermissionAlert');
+                  if (el) el.classList.remove('hidden');
+                }
+
+                hideMicPermissionAlert() {
+                  const el = document.getElementById('micPermissionAlert');
+                  if (el) el.classList.add('hidden');
                 }
 
                 checkFirstInstallAndDailyReward() {
                   if (this.isFreshInstall) {
                     setTimeout(() => {
                       document.getElementById('modalWelcomeBonus').classList.remove('hidden');
+                      haptics.successNotification();
                       soundFx.playReward();
                       try { confetti({ particleCount: 140, spread: 90, origin: { y: 0.5 } }); } catch(e) {}
                       this.speak("أهلاً بك يا معلّم! حصلت على 1000 نجمة هدية تثبيت اللعبة!");
@@ -813,6 +1023,7 @@ jobs:
                 }
 
                 closeWelcomeModal() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   document.getElementById('modalWelcomeBonus').classList.add('hidden');
                   this.checkDailyReward();
@@ -826,6 +1037,7 @@ jobs:
                     this.saveProgress();
                     setTimeout(() => {
                       document.getElementById('modalDailyReward').classList.remove('hidden');
+                      haptics.successNotification();
                       soundFx.playReward();
                       try { confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } }); } catch(e) {}
                       this.speak("مرحباً بك مجدداً يا معلّم! تمت إضافة 300 نجمة مكافأة يومية لحسابك!");
@@ -834,6 +1046,7 @@ jobs:
                 }
 
                 closeDailyRewardModal() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   document.getElementById('modalDailyReward').classList.add('hidden');
                 }
@@ -845,6 +1058,7 @@ jobs:
                 }
 
                 buyHint() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   if (!this.activeStage) return;
 
@@ -862,6 +1076,7 @@ jobs:
                   }
 
                   if (this.progress.starsBalance < 30) {
+                    haptics.errorNotification();
                     soundFx.playTabooAlarm();
                     alert("❌ رصيد النجوم غير كافٍ! تحتاج 30 نجمة على الأقل.");
                     return;
@@ -871,6 +1086,8 @@ jobs:
                   const newHint = unrevealed[0];
                   alreadyRevealed.push(newHint);
                   this.saveProgress();
+                  
+                  haptics.lightImpact();
                   soundFx.playHintReveal();
 
                   this.detectedCluesSet.add(newHint);
@@ -999,16 +1216,19 @@ jobs:
                 }
 
                 showExitModal() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   document.getElementById('modalExitConfirm').classList.remove('hidden');
                 }
 
                 closeExitModal() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   document.getElementById('modalExitConfirm').classList.add('hidden');
                 }
 
                 confirmExit() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
                     window.Capacitor.Plugins.App.exitApp();
@@ -1019,9 +1239,12 @@ jobs:
                   }
                 }
 
+                // ==========================================
+                // 3. ROBUST SPEECH RECOGNITION (Android WebView Stable)
+                // ==========================================
                 createRecognitionInstance() {
                   const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-                  if (!Speech) return;
+                  if (!Speech) return null;
 
                   const rec = new Speech();
                   rec.continuous = true;
@@ -1030,8 +1253,11 @@ jobs:
                   rec.lang = 'ar-EG';
 
                   rec.onstart = () => {
+                    this.isRecognitionStarting = false;
                     this.isVoiceActive = true;
+                    this.speechErrorCount = 0;
                     this.updateMicUI(true);
+                    this.hideMicPermissionAlert();
                   };
 
                   rec.onaudiostart = () => {
@@ -1077,47 +1303,67 @@ jobs:
                   };
 
                   rec.onerror = (e) => {
-                    console.warn("Speech error notice:", e.error);
+                    console.warn("Speech recognition warning:", e.error);
+                    this.isRecognitionStarting = false;
+
+                    // رفض الصلاحيات الصريح: لا تعيد المحاولة واعرض زر الإدخال النصي
                     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
                       this.userWantsVoice = false;
                       this.isVoiceActive = false;
                       this.updateMicUI(false);
+                      this.showMicPermissionAlert();
                       const pill = document.getElementById('aiStatusPill');
-                      if (pill) pill.innerText = "صلاحية المايك مرفوضة (استخدم الكيبورد)";
+                      if (pill) pill.innerText = "الصلاحية مرفوضة (استخدم الكتابة) ⌨️";
                       return;
                     }
-                    if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice) {
-                      setTimeout(() => {
-                        if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice && !this.isVoiceActive) {
-                          this.safeStartVoice();
-                        }
-                      }, 150);
+
+                    // أخطاء متوقعة في أندرويد ويبفيو عند فترات الصمت أو انقطاع الحزمة
+                    if (e.error === 'no-speech' || e.error === 'network' || e.error === 'aborted') {
+                      this.speechErrorCount++;
+                    }
+
+                    if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice && this.speechErrorCount < 6) {
+                      this.scheduleVoiceRestart(350);
+                    } else if (this.speechErrorCount >= 6) {
+                      this.userWantsVoice = false;
+                      this.updateMicUI(false);
+                      this.showMicPermissionAlert();
                     }
                   };
 
                   rec.onend = () => {
+                    this.isRecognitionStarting = false;
                     this.isVoiceActive = false;
-                    // يعيد الاتصال فقط إذا كان المستخدم قد ضغط زر المايك وما زال يريد التحدث
-                    if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice) {
-                      setTimeout(() => {
-                        if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice && !this.isVoiceActive) {
-                          this.safeStartVoice();
-                        }
-                      }, 100);
+
+                    // إعادة التشغيل الذكية لمنع تجمد WebView عند قطع الخدمة التلقائي
+                    if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice && this.currentScreen === 'screenPlay') {
+                      this.scheduleVoiceRestart(120);
                     } else {
                       this.updateMicUI(false);
                     }
                   };
 
-                  this.recognition = rec;
+                  return rec;
+                }
+
+                scheduleVoiceRestart(delayMs = 150) {
+                  if (this.speechRestartTimer) clearTimeout(this.speechRestartTimer);
+                  this.speechRestartTimer = setTimeout(() => {
+                    if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice && !this.isVoiceActive && this.currentScreen === 'screenPlay') {
+                      this.safeStartVoice();
+                    }
+                  }, delayMs);
                 }
 
                 safeStartVoice() {
                   if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+                    this.showMicPermissionAlert();
                     const pill = document.getElementById('aiStatusPill');
                     if (pill) pill.innerText = "اكتب الشرح بالكيبورد ⌨️";
                     return;
                   }
+
+                  if (this.isRecognitionStarting || this.isVoiceActive) return;
 
                   this.primeMicrophoneHardware();
 
@@ -1126,28 +1372,39 @@ jobs:
                     this.recognition = null;
                   }
 
-                  this.createRecognitionInstance();
+                  this.recognition = this.createRecognitionInstance();
+                  if (!this.recognition) return;
 
                   try {
+                    this.isRecognitionStarting = true;
                     this.recognition.start();
                     this.isVoiceActive = true;
                     this.updateMicUI(true);
                   } catch(err) {
-                    console.warn("safeStartVoice notice:", err);
+                    console.warn("safeStartVoice exception:", err);
+                    this.isRecognitionStarting = false;
+                    this.scheduleVoiceRestart(400);
                   }
                 }
 
                 safeStopVoice() {
+                  if (this.speechRestartTimer) {
+                    clearTimeout(this.speechRestartTimer);
+                    this.speechRestartTimer = null;
+                  }
                   if (this.recognition) {
                     try { this.recognition.abort(); } catch(e) {}
                     this.recognition = null;
                   }
+                  this.isRecognitionStarting = false;
                   this.isVoiceActive = false;
+                  this.speechErrorCount = 0;
                   this.updateMicUI(false);
                 }
 
                 // زر التحكم اليدوي بالمايك (تشغيل / إيقاف)
                 toggleMicManual() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   if (this.userWantsVoice && this.isVoiceActive) {
                     this.userWantsVoice = false;
@@ -1155,6 +1412,7 @@ jobs:
                     this.updateMicUI(false);
                   } else {
                     this.userWantsVoice = true;
+                    this.speechErrorCount = 0;
                     this.safeStartVoice();
                     this.updateMicUI(true);
                   }
@@ -1349,6 +1607,8 @@ jobs:
                 }
 
                 promptTextInput() {
+                  haptics.lightImpact();
+                  soundFx.playClick();
                   const input = prompt("💬 اكتب شرحك أو وصفك للكلمة هنا ليحلله الذكاء الاصطناعي:");
                   if (input && input.trim()) {
                     this.sessionFinalTranscript = (this.sessionFinalTranscript + ' ' + input.trim()).trim();
@@ -1396,6 +1656,7 @@ jobs:
                     if (!this.detectedCluesSet.has(hint)) {
                       if (this.matchesClue(cleanedText, words, hint)) {
                         this.detectedCluesSet.add(hint);
+                        haptics.lightImpact(); // رد فعل لمسي عند اكتشاف دلالة
                         soundFx.playClueDetected();
                       }
                     }
@@ -1437,6 +1698,7 @@ jobs:
                   document.getElementById('aiConfidenceBar').style.width = "100%";
                   document.getElementById('aiStatusPill').innerText = "تم التحقق والقبول بنجاح! 🎯";
 
+                  haptics.successNotification(); // رد فعل لمسي عند نجاح المرحلة
                   soundFx.playSuccessFanfare();
                   this.speak(`أحسنت الشرح! لقد عرفت أنك تقصد ${this.activeStage.w} بدقة تامة يا معلم!`);
                   try { confetti({ particleCount: 90, spread: 60, origin: { y: 0.7 } }); } catch(e) {}
@@ -1449,6 +1711,7 @@ jobs:
                 }
 
                 onNextClicked() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   if (this.autoTransitionTimer) clearTimeout(this.autoTransitionTimer);
                   this.userWantsVoice = false;
@@ -1480,6 +1743,7 @@ jobs:
 
                 onBust(reason) {
                   this.busts++;
+                  haptics.errorNotification(); // رد فعل لمسي تحذيري قوي عند الوقوع في محظور
                   soundFx.playTabooAlarm();
                   this.speak("قفشتك يا معلم! كلمة ممنوعة!");
                   alert(`🚨 قفشتك الحكم الآلي!\n${reason}\nاحتسبت مخالفة ونقصت نجمة!`);
@@ -1496,6 +1760,7 @@ jobs:
 
                 startStage(lvl) {
                   try {
+                    haptics.lightImpact();
                     soundFx.playClick();
                     const validLvl = Math.max(1, Math.min(200, parseInt(lvl || 1, 10)));
                     this.currentStageNum = validLvl;
@@ -1588,6 +1853,7 @@ jobs:
                     document.getElementById('playTimerText').innerText = `${this.timer}s`;
                     if (this.timer <= 0) {
                       clearInterval(this.timerInterval);
+                      haptics.errorNotification();
                       soundFx.playTabooAlarm();
                       this.userWantsVoice = false;
                       this.safeStopVoice();
@@ -1599,6 +1865,7 @@ jobs:
                 }
 
                 playNextStage() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   if (this.currentStageNum < 200) {
                     this.startStage(this.currentStageNum + 1);
@@ -1609,6 +1876,7 @@ jobs:
                 }
 
                 abandonStage() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   clearInterval(this.timerInterval);
                   this.isPlaying = false;
@@ -1619,6 +1887,7 @@ jobs:
                 }
 
                 resumeGame() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   this.startStage(this.progress.maxUnlocked || 1);
                 }
@@ -1632,6 +1901,7 @@ jobs:
                 }
 
                 filterWorld(wNum) {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   this.selectedWorld = wNum;
                   for (let i = 1; i <= 5; i++) {
@@ -1699,6 +1969,7 @@ jobs:
                 }
 
                 showScreen(id) {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   ['screenHome', 'screenMap', 'screenPlay', 'screenWin'].forEach(s => {
                     const el = document.getElementById(s);
@@ -1714,6 +1985,7 @@ jobs:
                 }
 
                 showHome() {
+                  haptics.lightImpact();
                   soundFx.playClick();
                   clearInterval(this.timerInterval);
                   this.isPlaying = false;
@@ -1758,17 +2030,17 @@ jobs:
 
       - name: Initialize Capacitor & Configure Android Project
         run: |
-          npm install @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor/android@6.0.0 @capacitor/app@6.0.0
           npx cap init "QoolYaM3alemPro" "com.qoolyam3alem.pro" --web-dir www
           npx cap add android
           npx cap sync android
 
-      - name: Grant Microphone & Audio Permissions to Android Manifest & Native Bridge
+      - name: Grant Permissions to Android Manifest & Native Bridge
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' $MANIFEST
+          # إضافة صلاحيات الميكروفون والاهتزاز VIBRATE في Manifest
+          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' $MANIFEST
 
-          # Inject Native Runtime Permission Request into MainActivity.java
+          # إعداد طلب الصلاحيات التلقائي في MainActivity
           MAIN_ACTIVITY="android/app/src/main/java/com/qoolyam3alem/pro/MainActivity.java"
           cat << 'EOF' > $MAIN_ACTIVITY
           package com.qoolyam3alem.pro;
@@ -1791,7 +2063,7 @@ jobs:
               }
           }
           EOF
-          echo "Native microphone permissions and auto-prompt configured successfully!"
+          echo "Native audio & haptics permissions configured successfully!"
 
       - name: Build Android Debug APK with Gradle
         run: |
