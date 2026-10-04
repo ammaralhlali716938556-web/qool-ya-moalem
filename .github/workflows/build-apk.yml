@@ -100,6 +100,93 @@ jobs:
               .gift-bounce { animation: gift-bounce 2s infinite ease-in-out; }
               .no-scrollbar::-webkit-scrollbar { display: none; }
               .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+              /* ======================================================== */
+              /* أنيميشن وحركات شخصية المعلم الكرتونية الحية             */
+              /* ======================================================== */
+              @keyframes m3alem-idle-breathe {
+                0%, 100% { transform: translateY(0px) scale(1); }
+                50% { transform: translateY(-3px) scale(1.01); }
+              }
+              @keyframes m3alem-tarboosh-shake {
+                0%, 100% { transform: rotate(0deg); }
+                25% { transform: rotate(-5deg); }
+                75% { transform: rotate(5deg); }
+              }
+              @keyframes m3alem-listening-glow {
+                0%, 100% { filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6)); }
+                50% { filter: drop-shadow(0 0 22px rgba(52, 211, 153, 0.95)); }
+              }
+              @keyframes m3alem-angry-headshake {
+                0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                20% { transform: translate(-4px, 0) rotate(-4deg); }
+                40% { transform: translate(4px, 0) rotate(4deg); }
+                60% { transform: translate(-3px, 0) rotate(-2deg); }
+                80% { transform: translate(3px, 0) rotate(2deg); }
+              }
+              @keyframes m3alem-happy-jump {
+                0%, 100% { transform: translateY(0) scale(1); }
+                30% { transform: translateY(-10px) scale(1.05); }
+                60% { transform: translateY(-3px) scale(1.02); }
+              }
+              @keyframes tassel-swing {
+                0%, 100% { transform: rotate(0deg); }
+                50% { transform: rotate(20deg); }
+              }
+
+              .m3alem-idle {
+                animation: m3alem-idle-breathe 3s ease-in-out infinite;
+              }
+              .m3alem-listening {
+                animation: m3alem-listening-glow 1.2s infinite ease-in-out;
+              }
+              .m3alem-listening #m3alemTarboosh {
+                animation: m3alem-tarboosh-shake 0.8s infinite ease-in-out;
+                transform-origin: 65px 35px;
+              }
+              .m3alem-listening #tarbooshTassel {
+                animation: tassel-swing 0.6s infinite ease-in-out;
+                transform-origin: 75px 22px;
+              }
+              .m3alem-happy {
+                animation: m3alem-happy-jump 0.8s ease-in-out infinite;
+              }
+              .m3alem-angry {
+                animation: m3alem-angry-headshake 0.4s ease-in-out infinite;
+              }
+
+              /* فقاعة الحوار الكرتونية Speech Bubble */
+              .comic-bubble {
+                position: relative;
+                background: #ffffff;
+                border: 2px solid #312e81;
+                border-radius: 16px;
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+              }
+              .comic-bubble::after {
+                content: '';
+                position: absolute;
+                bottom: -10px;
+                left: 50%;
+                transform: translateX(-50%);
+                border-width: 10px 10px 0;
+                border-style: solid;
+                border-color: #ffffff transparent transparent transparent;
+                display: block;
+                width: 0;
+              }
+              .comic-bubble::before {
+                content: '';
+                position: absolute;
+                bottom: -13px;
+                left: 50%;
+                transform: translateX(-50%);
+                border-width: 12px 12px 0;
+                border-style: solid;
+                border-color: #312e81 transparent transparent transparent;
+                display: block;
+                width: 0;
+              }
             </style>
           </head>
           <body class="flex justify-center items-center select-none min-h-screen">
@@ -193,43 +280,128 @@ jobs:
                 <div id="stagesScrollContainer" class="flex-1 overflow-y-auto px-4 py-4 grid grid-cols-4 gap-3 text-center content-start"></div>
               </div>
 
-              <!-- SCREEN 3: GAMEPLAY -->
-              <div id="screenPlay" class="hidden flex-1 flex flex-col items-center justify-between px-4 py-2 z-10">
+              <!-- SCREEN 3: GAMEPLAY (WITH CARTOON CHARACTER "EL-M3ALEM") -->
+              <div id="screenPlay" class="hidden flex-1 flex flex-col items-center justify-between px-3.5 py-1.5 z-10 overflow-y-auto no-scrollbar">
+                
                 <!-- TOP STAGE INFO -->
-                <div class="w-full flex justify-between items-center bg-white/10 backdrop-blur-md rounded-2xl px-4 py-1.5 border border-white/20 text-white font-bold text-xs">
+                <div class="w-full flex justify-between items-center bg-white/10 backdrop-blur-md rounded-2xl px-4 py-1 border border-white/20 text-white font-bold text-xs">
                   <div>المرحلة: <span id="playStageNum" class="text-yellow-300 font-black">#1</span> (<span id="playWorldTag" class="text-indigo-200">حارة المبتدئين</span>)</div>
                   <div>المحاولات السليمة: <span id="playStarsDisplay" class="text-amber-400 font-black">⭐⭐⭐</span></div>
                 </div>
 
-                <!-- TIMER & LIVE MIC ICON (MANUAL TOGGLE) -->
-                <div class="flex items-center space-x-3 space-x-reverse my-1">
-                  <div class="flex flex-col items-center">
-                    <div id="micIndicator" onclick="window.game.toggleMicManual()" title="انقر لبدء التحدث والشرح" class="w-14 h-14 rounded-full bg-slate-700 text-emerald-400 flex items-center justify-center text-xl shadow-lg ring-4 ring-white/10 cursor-pointer transition active:scale-95">
-                      <i class="fa-solid fa-microphone"></i>
-                    </div>
-                    <span id="micActionHint" class="text-[9px] font-black text-amber-300 mt-1">اضغط للتحدث</span>
+                <!-- CARTOON CHARACTER: EL-M3ALEM INTERACTIVE COMPONENT -->
+                <div class="w-full flex flex-col items-center my-1 relative">
+                  <!-- فقاعة الحوار الكرتونية (Comic Speech Bubble) -->
+                  <div id="m3alemSpeechBubble" class="comic-bubble px-3.5 py-1.5 mb-2 max-w-[290px] text-center z-10 transition-all duration-300">
+                    <p id="m3alemQuoteText" class="text-slate-900 font-black text-[11px] leading-tight font-tajawal">
+                      "أنا سامعك يا معلّم.. ورّيني شطارتك واشرح من غير ما تغلط!" 🎙️
+                    </p>
                   </div>
-                  <div class="text-right">
-                    <div class="text-[11px] text-gray-300 font-bold">الوقت المتبقي:</div>
-                    <div id="playTimerText" class="text-3xl font-black text-yellow-300 font-tajawal">60s</div>
+
+                  <!-- مجسم المعلم بتقنية SVG المدمج فائق الخفة والتفاعل -->
+                  <div class="relative flex items-center justify-center">
+                    <div id="m3alemCharacterContainer" class="m3alem-idle transition-all duration-300 cursor-pointer" onclick="window.game.onM3alemClicked()" title="انقر للتفاعل مع المعلم">
+                      <svg id="m3alemSvg" class="w-24 h-24 drop-shadow-lg" viewBox="0 0 130 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- هالة التوهج عند الاستماع -->
+                        <circle id="m3alemGlow" cx="65" cy="72" r="48" fill="rgba(16, 185, 129, 0.15)" class="opacity-0 transition-opacity duration-300"/>
+
+                        <!-- الجلابية الشعبية -->
+                        <path d="M30 120 C30 95, 45 88, 65 88 C85 88, 100 95, 100 120 Z" fill="#312e81"/>
+                        <path d="M52 88 L65 106 L78 88 Z" fill="#ffffff"/>
+                        <path d="M64 96 L66 96 L66 120 L64 120 Z" fill="#fbbf24"/>
+
+                        <!-- الرأس والأذنان -->
+                        <ellipse cx="65" cy="68" rx="34" ry="32" id="m3alemFace" fill="#fed7aa" stroke="#7c2d12" stroke-width="2.5" class="transition-colors duration-300"/>
+                        <!-- الأذن اليمنى -->
+                        <ellipse cx="31" cy="69" rx="6" ry="8" fill="#fed7aa" stroke="#7c2d12" stroke-width="2"/>
+                        <!-- الأذن اليسرى -->
+                        <ellipse cx="99" cy="69" rx="6" ry="8" fill="#fed7aa" stroke="#7c2d12" stroke-width="2"/>
+
+                        <!-- الخدود الوردية -->
+                        <ellipse cx="45" cy="74" rx="5" ry="3.5" fill="#fca5a5" opacity="0.6"/>
+                        <ellipse cx="85" cy="74" rx="5" ry="3.5" fill="#fca5a5" opacity="0.6"/>
+
+                        <!-- العيون والحواجب -->
+                        <!-- العين اليمنى -->
+                        <ellipse id="eyeRightWhite" cx="50" cy="61" rx="7" ry="8.5" fill="#ffffff" stroke="#451a03" stroke-width="1.5"/>
+                        <circle id="eyeRightPupil" cx="50" cy="62" r="4" fill="#1e1b4b"/>
+                        <circle cx="51.5" cy="60" r="1.5" fill="#ffffff"/>
+
+                        <!-- العين اليسرى -->
+                        <ellipse id="eyeLeftWhite" cx="80" cy="61" rx="7" ry="8.5" fill="#ffffff" stroke="#451a03" stroke-width="1.5"/>
+                        <circle id="eyeLeftPupil" cx="80" cy="62" r="4" fill="#1e1b4b"/>
+                        <circle cx="81.5" cy="60" r="1.5" fill="#ffffff"/>
+
+                        <!-- الحواجب التفاعلية -->
+                        <path id="browRight" d="M42 51 Q50 47 58 51" stroke="#1f2937" stroke-width="3" stroke-linecap="round" fill="none" class="transition-all duration-200"/>
+                        <path id="browLeft" d="M72 51 Q80 47 88 51" stroke="#1f2937" stroke-width="3" stroke-linecap="round" fill="none" class="transition-all duration-200"/>
+
+                        <!-- الأنف الشعبي المميّز -->
+                        <ellipse cx="65" cy="68" rx="4.5" ry="4" fill="#fb923c"/>
+
+                        <!-- الشنب الشعبي العريض الأيقوني -->
+                        <path id="m3alemMustache" d="M42 75 C52 70, 62 76, 65 79 C68 76, 78 70, 88 75 C91 80, 80 84, 65 82 C50 84, 39 80, 42 75 Z" fill="#18181b" stroke="#09090b" stroke-width="1.5"/>
+
+                        <!-- الفم التفاعلي -->
+                        <path id="m3alemMouth" d="M57 85 Q65 91 73 85" stroke="#7f1d1d" stroke-width="2.5" stroke-linecap="round" fill="none" class="transition-all duration-200"/>
+
+                        <!-- الطربوش المصري الشعبي المائل بزر وشُرابة -->
+                        <g id="m3alemTarboosh" class="transition-transform duration-300">
+                          <path d="M45 44 L51 18 L79 18 L85 44 Z" fill="#b91c1c" stroke="#7f1d1d" stroke-width="2"/>
+                          <ellipse cx="65" cy="18" rx="14" ry="4" fill="#991b1b"/>
+                          <circle cx="65" cy="18" r="2.5" fill="#18181b"/>
+                          <!-- الشُرّابة السوداء الهزازة -->
+                          <g id="tarbooshTassel">
+                            <path d="M65 18 Q74 22 75 32" stroke="#18181b" stroke-width="2" fill="none"/>
+                            <polygon points="73,32 78,32 76,42 71,42" fill="#18181b"/>
+                          </g>
+                        </g>
+
+                        <!-- إشارة برافو (Thumbs Up) تظهر في حالة الفوز -->
+                        <g id="handBravo" class="hidden">
+                          <circle cx="106" cy="62" r="14" fill="#10b981" stroke="#ffffff" stroke-width="2"/>
+                          <text x="106" y="67" font-size="14" text-anchor="middle" fill="#ffffff" font-weight="bold">👍</text>
+                        </g>
+
+                        <!-- كارت أحمر تحذيري يظهر عند الوقوع في كلمة ممنوعة (Bust) -->
+                        <g id="cardAngry" class="hidden">
+                          <rect x="94" y="44" width="18" height="26" rx="3" fill="#ef4444" stroke="#ffffff" stroke-width="2" transform="rotate(15 94 44)"/>
+                          <text x="102" y="61" font-size="12" text-anchor="middle" fill="#ffffff" font-weight="900" transform="rotate(15 94 44)">✕</text>
+                        </g>
+                      </svg>
+                    </div>
+
+                    <!-- زر المايك ومؤشر الوقت مدمجان بتناسق أسفل المعلم -->
+                    <div class="flex items-center space-x-3 space-x-reverse mr-3">
+                      <div class="flex flex-col items-center">
+                        <div id="micIndicator" onclick="window.game.toggleMicManual()" title="انقر لبدء التحدث والشرح" class="w-13 h-13 rounded-full bg-slate-700 text-emerald-400 flex items-center justify-center text-lg shadow-lg ring-4 ring-white/10 cursor-pointer transition active:scale-95">
+                          <i class="fa-solid fa-microphone"></i>
+                        </div>
+                        <span id="micActionHint" class="text-[9px] font-black text-amber-300 mt-0.5">اضغط للتحدث</span>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-[10px] text-gray-300 font-bold">الوقت:</div>
+                        <div id="playTimerText" class="text-2xl font-black text-yellow-300 font-tajawal">60s</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <!-- NOTICE BANNER FOR PERMISSION OR MIC ISSUES (NON-BLOCKING) -->
-                <div id="micPermissionAlert" class="hidden w-full bg-amber-500/20 border border-amber-400/40 text-amber-200 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs font-bold mb-1">
+                <div id="micPermissionAlert" class="hidden w-full bg-amber-500/20 border border-amber-400/40 text-amber-200 rounded-xl px-3 py-1 flex items-center justify-between text-xs font-bold mb-1">
                   <div class="flex items-center space-x-1.5 space-x-reverse">
                     <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
-                    <span>الميكروفون غير متاح حالياً. يمكنك استخدام الإدخال النصي!</span>
+                    <span>الميكروفون غير متاح. استخدم الإدخال النصي!</span>
                   </div>
-                  <button onclick="window.game.promptTextInput()" class="bg-amber-400 text-amber-950 px-2.5 py-0.5 rounded-lg text-[10px] font-black hover:bg-amber-300 active:scale-95 transition">
+                  <button onclick="window.game.promptTextInput()" class="bg-amber-400 text-amber-950 px-2 py-0.5 rounded-lg text-[10px] font-black hover:bg-amber-300 active:scale-95 transition">
                     اكتب الآن
                   </button>
                 </div>
 
                 <!-- CARD -->
-                <div class="w-full clay-card p-4 relative overflow-hidden text-center shadow-2xl border-4 border-indigo-200">
+                <div class="w-full clay-card p-3.5 relative overflow-hidden text-center shadow-2xl border-4 border-indigo-200">
                   <div class="flex justify-between items-center mb-1">
-                    <span id="playCategory" class="bg-indigo-100 text-indigo-900 text-[10px] font-black px-2.5 py-0.5 rounded-full">
+                    <span id="playCategory" class="bg-indigo-100 text-indigo-900 text-[10px] font-black px-2 py-0.5 rounded-full">
                       أكلات شعبية
                     </span>
 
@@ -241,22 +413,22 @@ jobs:
                       </button>
 
                       <!-- HINT PURCHASE BUTTON -->
-                      <button id="btnBuyHint" onclick="window.game.buyHint()" class="btn-3d py-1 px-2.5 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-950 font-black text-[11px] rounded-xl flex items-center space-x-1 space-x-reverse border border-amber-200 shadow active:scale-95 transition">
+                      <button id="btnBuyHint" onclick="window.game.buyHint()" class="btn-3d py-1 px-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-950 font-black text-[10px] rounded-xl flex items-center space-x-1 space-x-reverse border border-amber-200 shadow active:scale-95 transition">
                         <span>💡</span>
                         <span id="hintBtnLabel">كشف دلالة (-30 ⭐)</span>
                       </button>
                     </div>
                   </div>
 
-                  <div id="playWord" class="text-3xl font-black text-slate-900 my-1 font-tajawal">
+                  <div id="playWord" class="text-2xl font-black text-slate-900 my-0.5 font-tajawal">
                     كشري
                   </div>
 
                   <!-- PERMANENTLY REVEALED HINTS BANNER -->
-                  <div id="revealedHintBanner" class="hidden mb-2 p-1.5 bg-amber-50 border border-amber-300 rounded-xl text-right">
+                  <div id="revealedHintBanner" class="hidden mb-1.5 p-1.5 bg-amber-50 border border-amber-300 rounded-xl text-right">
                     <div class="text-[10px] font-black text-amber-900 flex items-center space-x-1 space-x-reverse mb-0.5">
                       <span>💡</span>
-                      <span>دلالات مكشوفة لك (تحدث عنها أو عن كلمات تشبهها):</span>
+                      <span>دلالات مكشوفة لك:</span>
                     </div>
                     <div id="revealedHintsContainer" class="flex flex-wrap gap-1 text-xs font-bold text-amber-950"></div>
                   </div>
@@ -270,41 +442,41 @@ jobs:
                       </div>
                       <span id="playTabooCountLabel" class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">2 كلمات</span>
                     </div>
-                    <div id="playTaboosContainer" class="flex flex-wrap gap-1.5 text-xs font-bold text-slate-800"></div>
+                    <div id="playTaboosContainer" class="flex flex-wrap gap-1 text-xs font-bold text-slate-800"></div>
                   </div>
 
                   <!-- AI CONFIDENCE RADAR BAR -->
-                  <div class="mt-2 pt-2 border-t border-slate-200 text-right">
+                  <div class="mt-2 pt-1.5 border-t border-slate-200 text-right">
                     <div class="flex justify-between items-center text-[10px] font-bold text-slate-600 mb-1">
-                      <span><i class="fa-solid fa-brain text-indigo-600"></i> اقتناع الذكاء الاصطناعي بشرحك:</span>
+                      <span><i class="fa-solid fa-brain text-indigo-600"></i> اقتناع المعلم بشرحك:</span>
                       <span id="aiConfidencePct" class="font-black font-mono text-xs text-indigo-700">0%</span>
                     </div>
                     <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
                       <div id="aiConfidenceBar" class="bg-gradient-to-r from-amber-400 to-emerald-500 h-2.5 rounded-full transition-all duration-300 w-0"></div>
                     </div>
-                    <div id="aiDetectedClues" class="flex flex-wrap gap-1 mt-1.5 min-h-[18px]"></div>
+                    <div id="aiDetectedClues" class="flex flex-wrap gap-1 mt-1 min-h-[16px]"></div>
                   </div>
                 </div>
 
                 <!-- REALTIME SPEECH MONITOR (LIVE STREAMING) -->
-                <div class="w-full bg-black/60 backdrop-blur-md rounded-2xl p-2.5 border border-white/10 text-right">
-                  <div class="flex justify-between items-center text-[11px] text-yellow-300 font-bold mb-1">
-                    <span><i class="fa-solid fa-ear-listen animate-pulse"></i> ما يسمعه الميكروفون الآن (مباشر):</span>
-                    <span id="aiStatusPill" class="text-amber-300 font-mono text-[10px]">المايك متوقف (اضغط للتحدث) 🎙️</span>
+                <div class="w-full bg-black/60 backdrop-blur-md rounded-2xl p-2 border border-white/10 text-right my-1">
+                  <div class="flex justify-between items-center text-[10px] text-yellow-300 font-bold mb-0.5">
+                    <span><i class="fa-solid fa-ear-listen animate-pulse"></i> ما يسمعه المعلم الآن:</span>
+                    <span id="aiStatusPill" class="text-amber-300 font-mono text-[9px]">المايك متوقف (اضغط للتحدث) 🎙️</span>
                   </div>
-                  <div id="playTranscript" class="text-xs font-bold text-white min-h-[30px] max-h-[36px] overflow-hidden leading-tight">
-                    اضغط على زر الميكروفون بالأعلى أو زر الكتابة ⌨️ لبدء الشرح...
+                  <div id="playTranscript" class="text-xs font-bold text-white min-h-[26px] max-h-[34px] overflow-hidden leading-tight">
+                    اضغط على زر الميكروفون بالأعلى وتحدث بحرية ليشرح الذكاء الاصطناعي كلماتك...
                   </div>
                 </div>
 
                 <!-- ACTION BUTTONS -->
-                <div class="w-full grid grid-cols-2 gap-2.5 pb-2">
-                  <button onclick="window.game.abandonStage()" class="btn-3d py-3.5 bg-slate-800 rounded-2xl border-b-[4px] border-slate-950 text-white font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse">
+                <div class="w-full grid grid-cols-2 gap-2 pb-1">
+                  <button onclick="window.game.abandonStage()" class="btn-3d py-3 bg-slate-800 rounded-2xl border-b-[4px] border-slate-950 text-white font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse">
                     <i class="fa-solid fa-arrow-right-from-bracket"></i>
                     <span>انسحاب للخريطة</span>
                   </button>
 
-                  <button id="btnNextStage" onclick="window.game.onNextClicked()" disabled class="btn-3d py-3.5 bg-slate-800 text-gray-500 rounded-2xl border-b-[4px] border-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-not-allowed opacity-60 transition-all duration-300">
+                  <button id="btnNextStage" onclick="window.game.onNextClicked()" disabled class="btn-3d py-3 bg-slate-800 text-gray-500 rounded-2xl border-b-[4px] border-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-not-allowed opacity-60 transition-all duration-300">
                     <i id="btnNextIcon" class="fa-solid fa-hourglass-half"></i>
                     <span id="btnNextLabel">في انتظار الشرح... (0%)</span>
                   </button>
@@ -424,7 +596,6 @@ jobs:
                   return this.haptics;
                 }
 
-                // اهتزاز ناعم وخفيف للنقر واكتشاف الدلالات
                 async lightImpact() {
                   try {
                     const plugin = this.getPlugin();
@@ -434,13 +605,11 @@ jobs:
                     }
                   } catch (e) {}
 
-                  // Fallback: Web Vibration API
                   if ('vibrate' in navigator) {
                     try { navigator.vibrate(35); } catch(e) {}
                   }
                 }
 
-                // اهتزاز نجاح واكتمال المرحلة
                 async successNotification() {
                   try {
                     const plugin = this.getPlugin();
@@ -450,13 +619,11 @@ jobs:
                     }
                   } catch (e) {}
 
-                  // Fallback: نمط اهتزاز نجاح متتابع ناعم
                   if ('vibrate' in navigator) {
                     try { navigator.vibrate([60, 40, 80]); } catch(e) {}
                   }
                 }
 
-                // اهتزاز تحذيري قوي عند الوقوع في محظور (Bust)
                 async errorNotification() {
                   try {
                     const plugin = this.getPlugin();
@@ -466,7 +633,6 @@ jobs:
                     }
                   } catch (e) {}
 
-                  // Fallback: نمط اهتزاز تحذيري ثنائي حاد
                   if ('vibrate' in navigator) {
                     try { navigator.vibrate([90, 50, 150]); } catch(e) {}
                   }
@@ -483,7 +649,6 @@ jobs:
                   this.ctx = null;
                   this.enabled = true;
                   this.compressor = null;
-                  this.samples = {}; // جاهز لاستقبال ملفات صوتية حقيقية AudioBuffer عند التزويد
                 }
 
                 init() {
@@ -491,7 +656,6 @@ jobs:
                     const AudioContext = window.AudioContext || window.webkitAudioContext;
                     if (AudioContext) {
                       this.ctx = new AudioContext();
-                      // إعداد موازن ديناميكي لتصفية الصوت وإعطائه عمقاً واقعياً
                       this.compressor = this.ctx.createDynamicsCompressor();
                       this.compressor.threshold.setValueAtTime(-20, this.ctx.currentTime);
                       this.compressor.knee.setValueAtTime(30, this.ctx.currentTime);
@@ -510,7 +674,6 @@ jobs:
                   return this.compressor || (this.ctx ? this.ctx.destination : null);
                 }
 
-                // نغمة كليك واقعية ذات طبقتين مع مرشح تمرير منخفض (Realistic Mechanical Click)
                 playClick() {
                   if (!this.enabled) return;
                   try {
@@ -564,7 +727,6 @@ jobs:
                   setTimeout(() => this.playSmoothChime(880.00, 0.14, 0.26), 65);
                 }
 
-                // صفارة إنذار كرتونية واقعية وتحذيرية
                 playTabooAlarm() {
                   if (!this.enabled) return;
                   try {
@@ -586,7 +748,6 @@ jobs:
                     osc.start(now);
                     osc.stop(now + 0.25);
 
-                    // نغمة ثانوية هابطة
                     setTimeout(() => {
                       if (!this.ctx) return;
                       const t2 = this.ctx.currentTime;
@@ -608,10 +769,10 @@ jobs:
                 playSuccessFanfare() {
                   if (!this.enabled) return;
                   const notes = [
-                    { f: 523.25, d: 0.12 }, // C5
-                    { f: 659.25, d: 0.12 }, // E5
-                    { f: 783.99, d: 0.14 }, // G5
-                    { f: 1046.50, d: 0.35 } // C6
+                    { f: 523.25, d: 0.12 },
+                    { f: 659.25, d: 0.12 },
+                    { f: 783.99, d: 0.14 },
+                    { f: 1046.50, d: 0.35 }
                   ];
                   notes.forEach((n, i) => {
                     setTimeout(() => this.playSmoothChime(n.f, n.d, 0.28), i * 95);
@@ -651,6 +812,129 @@ jobs:
               }
 
               const soundFx = new SoundFxManager();
+
+              // ==========================================
+              // 3. M3ALEM CHARACTER MANAGER (Interactive Expressions)
+              // ==========================================
+              class M3alemCharacterManager {
+                constructor() {
+                  this.currentState = 'idle';
+                  this.speechTimeout = null;
+                  this.quotes = {
+                    idle: [
+                      "أنا سامعك يا معلّم.. ورّيني شطارتك واشرح!",
+                      "المايك في انتظارك.. فكر وبلاش استعجال!",
+                      "على مهلك يا بطل، الذكاء في اللسان السالك!",
+                      "اضغط المايك وسمّعني أحلى كلام شعبي!"
+                    ],
+                    listening: [
+                      "ودني معاك يا فنان.. سمعني الحلاوة!",
+                      "قول وسرسِب الكلام في ودني، مركز معاك!",
+                      "شغال أهو.. هات الدلالات يا وحش!",
+                      "الله على الكلام.. واصل الشرح بتركيز!"
+                    ],
+                    clue: [
+                      "أيوة كده قرّبت يا واد!",
+                      "يا عيني على الشرح المنور!",
+                      "دلالة في الجون.. كمّل كمّل!",
+                      "حلو أوي.. المعلم راضي عنك!"
+                    ],
+                    happy: [
+                      "يا صلاة الزين! هو ده المعلم الحقيقي! 👑",
+                      "الله عليك يا حبيب والديك.. فن وأصول!",
+                      "برافو يا معلم! جبتها في الصميم!",
+                      "ختمتها يا أسطورة.. تستاهل النجوم!"
+                    ],
+                    angry: [
+                      "قفشتك يا معلم! رايح فين بالكارت الأحمر ده؟! 🚨",
+                      "جرى إيه يا بلدينا؟! الكلمة دي ممنوعة!",
+                      "يا وقعة مربربة! نطقت المحظور ونقصت نجمة!",
+                      "ركّز معايا وبلاش تغلط تاني!"
+                    ]
+                  };
+                }
+
+                setState(state, customQuote = null) {
+                  this.currentState = state;
+                  const container = document.getElementById('m3alemCharacterContainer');
+                  const glow = document.getElementById('m3alemGlow');
+                  const face = document.getElementById('m3alemFace');
+                  const mouth = document.getElementById('m3alemMouth');
+                  const browR = document.getElementById('browRight');
+                  const browL = document.getElementById('browLeft');
+                  const handBravo = document.getElementById('handBravo');
+                  const cardAngry = document.getElementById('cardAngry');
+
+                  if (!container) return;
+
+                  // تنظيف الفئات السابقة
+                  container.className = 'transition-all duration-300 cursor-pointer';
+                  glow.classList.add('opacity-0');
+                  handBravo.classList.add('hidden');
+                  cardAngry.classList.add('hidden');
+                  face.setAttribute('fill', '#fed7aa');
+
+                  if (state === 'idle') {
+                    container.classList.add('m3alem-idle');
+                    browR.setAttribute('d', 'M42 51 Q50 47 58 51');
+                    browL.setAttribute('d', 'M72 51 Q80 47 88 51');
+                    mouth.setAttribute('d', 'M57 85 Q65 91 73 85');
+                  } else if (state === 'listening') {
+                    container.classList.add('m3alem-listening');
+                    glow.classList.remove('opacity-0');
+                    browR.setAttribute('d', 'M42 49 Q50 44 58 49');
+                    browL.setAttribute('d', 'M72 49 Q80 44 88 49');
+                    mouth.setAttribute('d', 'M58 86 Q65 89 72 86');
+                  } else if (state === 'happy') {
+                    container.classList.add('m3alem-happy');
+                    glow.classList.remove('opacity-0');
+                    face.setAttribute('fill', '#fef08a');
+                    browR.setAttribute('d', 'M42 48 Q50 42 58 48');
+                    browL.setAttribute('d', 'M72 48 Q80 42 88 48');
+                    mouth.setAttribute('d', 'M54 84 Q65 98 76 84 Z');
+                    mouth.setAttribute('fill', '#ffffff');
+                    handBravo.classList.remove('hidden');
+                  } else if (state === 'angry') {
+                    container.classList.add('m3alem-angry');
+                    face.setAttribute('fill', '#fca5a5');
+                    browR.setAttribute('d', 'M42 46 L58 53');
+                    browL.setAttribute('d', 'M72 53 L88 46');
+                    mouth.setAttribute('d', 'M56 90 Q65 82 74 90');
+                    mouth.setAttribute('fill', 'none');
+                    cardAngry.classList.remove('hidden');
+                  }
+
+                  this.sayQuote(state, customQuote);
+                }
+
+                sayQuote(category, customText = null) {
+                  const quoteEl = document.getElementById('m3alemQuoteText');
+                  const bubble = document.getElementById('m3alemSpeechBubble');
+                  if (!quoteEl || !bubble) return;
+
+                  let text = customText;
+                  if (!text) {
+                    const list = this.quotes[category] || this.quotes.idle;
+                    text = list[Math.floor(Math.random() * list.length)];
+                  }
+
+                  quoteEl.innerText = `"${text}"`;
+                  bubble.classList.remove('scale-95');
+                  bubble.classList.add('scale-105');
+                  setTimeout(() => bubble.classList.remove('scale-105'), 200);
+
+                  if (category === 'angry' || category === 'clue') {
+                    if (this.speechTimeout) clearTimeout(this.speechTimeout);
+                    this.speechTimeout = setTimeout(() => {
+                      if (window.game && window.game.isPlaying && !window.game.isSuccessApproved) {
+                        this.setState(window.game.isVoiceActive ? 'listening' : 'idle');
+                      }
+                    }, 3000);
+                  }
+                }
+              }
+
+              const m3alem = new M3alemCharacterManager();
 
               // COMPREHENSIVE CATEGORY LEXICONS
               const CATEGORY_LEXICONS = {
@@ -898,7 +1182,7 @@ jobs:
                   this.recognition = null;
                   this.isPlaying = false;
                   this.isVoiceActive = false;
-                  this.userWantsVoice = false; // تسجيل يدوي فقط
+                  this.userWantsVoice = false;
                   this.isSuccessApproved = false;
                   this.currentScreen = 'screenHome';
                   this.detectedCluesSet = new Set();
@@ -908,7 +1192,6 @@ jobs:
                   this.accumulatedWordsCount = 0;
                   this.hasPrimedMic = false;
 
-                  // إدارة استقرار الميكروفون
                   this.speechRestartTimer = null;
                   this.speechErrorCount = 0;
                   this.isRecognitionStarting = false;
@@ -989,7 +1272,7 @@ jobs:
                       }
                     }).then((stream) => {
                       this.hasPrimedMic = true;
-                      stream.getTracks().forEach(track => track.stop()); // تحرير المايك فوراً
+                      stream.getTracks().forEach(track => track.stop());
                       this.hideMicPermissionAlert();
                     }).catch(e => {
                       console.warn("Hardware mic prime notice:", e);
@@ -1057,6 +1340,12 @@ jobs:
                   document.getElementById('homeResumeLvl').innerText = this.progress.maxUnlocked;
                 }
 
+                onM3alemClicked() {
+                  haptics.lightImpact();
+                  soundFx.playClick();
+                  m3alem.sayQuote(this.isVoiceActive ? 'listening' : 'idle');
+                }
+
                 buyHint() {
                   haptics.lightImpact();
                   soundFx.playClick();
@@ -1078,6 +1367,7 @@ jobs:
                   if (this.progress.starsBalance < 30) {
                     haptics.errorNotification();
                     soundFx.playTabooAlarm();
+                    m3alem.setState('angry', "محفظة النجوم فاضية يا معلّم! محتاج 30 نجمة ع الأقل!");
                     alert("❌ رصيد النجوم غير كافٍ! تحتاج 30 نجمة على الأقل.");
                     return;
                   }
@@ -1095,6 +1385,7 @@ jobs:
                   this.renderDetectedCluesUI();
                   this.updateConfidence(this.accumulatedWordsCount || 0);
 
+                  m3alem.setState('listening', `فتحتلك دلالة: ${newHint}! لفّ ودوّر حواليها!`);
                   this.speak(`تم كشف دلالة: ${newHint}! اذكرها في شرحك!`);
                 }
 
@@ -1167,10 +1458,10 @@ jobs:
                   if (totalConfidence >= 75) {
                     this.triggerAutoSuccess();
                   } else {
-                    if (nextLabel) nextLabel.innerText = `اقتناع الذكاء: ${totalConfidence}% (واصل الشرح)`;
+                    if (nextLabel) nextLabel.innerText = `اقتناع المعلم: ${totalConfidence}% (واصل)`;
                     if (nextBtn) {
                       nextBtn.disabled = true;
-                      nextBtn.className = "btn-3d py-3.5 bg-slate-800 text-yellow-300 rounded-2xl border-b-[4px] border-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-not-allowed opacity-80 transition-all duration-300";
+                      nextBtn.className = "btn-3d py-3 bg-slate-800 text-yellow-300 rounded-2xl border-b-[4px] border-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-not-allowed opacity-80 transition-all duration-300";
                     }
                   }
                 }
@@ -1239,9 +1530,6 @@ jobs:
                   }
                 }
 
-                // ==========================================
-                // 3. ROBUST SPEECH RECOGNITION (Android WebView Stable)
-                // ==========================================
                 createRecognitionInstance() {
                   const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
                   if (!Speech) return null;
@@ -1258,6 +1546,7 @@ jobs:
                     this.speechErrorCount = 0;
                     this.updateMicUI(true);
                     this.hideMicPermissionAlert();
+                    m3alem.setState('listening');
                   };
 
                   rec.onaudiostart = () => {
@@ -1267,9 +1556,10 @@ jobs:
                   rec.onspeechstart = () => {
                     const pill = document.getElementById('aiStatusPill');
                     if (pill) {
-                      pill.innerText = "يحلل الكلمات المنطوقة فوراً... 🧠";
-                      pill.className = "text-cyan-300 font-mono text-[10px]";
+                      pill.innerText = "المعلم يحلل كلامك فوراً... 🧠";
+                      pill.className = "text-cyan-300 font-mono text-[9px]";
                     }
+                    m3alem.setState('listening');
                   };
 
                   rec.onresult = (ev) => {
@@ -1306,18 +1596,17 @@ jobs:
                     console.warn("Speech recognition warning:", e.error);
                     this.isRecognitionStarting = false;
 
-                    // رفض الصلاحيات الصريح: لا تعيد المحاولة واعرض زر الإدخال النصي
                     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
                       this.userWantsVoice = false;
                       this.isVoiceActive = false;
                       this.updateMicUI(false);
                       this.showMicPermissionAlert();
+                      m3alem.setState('idle', "الصلاحية مش مسموحة.. اكتب بالشات يا بطل!");
                       const pill = document.getElementById('aiStatusPill');
                       if (pill) pill.innerText = "الصلاحية مرفوضة (استخدم الكتابة) ⌨️";
                       return;
                     }
 
-                    // أخطاء متوقعة في أندرويد ويبفيو عند فترات الصمت أو انقطاع الحزمة
                     if (e.error === 'no-speech' || e.error === 'network' || e.error === 'aborted') {
                       this.speechErrorCount++;
                     }
@@ -1328,6 +1617,7 @@ jobs:
                       this.userWantsVoice = false;
                       this.updateMicUI(false);
                       this.showMicPermissionAlert();
+                      m3alem.setState('idle');
                     }
                   };
 
@@ -1335,11 +1625,13 @@ jobs:
                     this.isRecognitionStarting = false;
                     this.isVoiceActive = false;
 
-                    // إعادة التشغيل الذكية لمنع تجمد WebView عند قطع الخدمة التلقائي
                     if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice && this.currentScreen === 'screenPlay') {
                       this.scheduleVoiceRestart(120);
                     } else {
                       this.updateMicUI(false);
+                      if (this.isPlaying && !this.isSuccessApproved) {
+                        m3alem.setState('idle');
+                      }
                     }
                   };
 
@@ -1402,7 +1694,6 @@ jobs:
                   this.updateMicUI(false);
                 }
 
-                // زر التحكم اليدوي بالمايك (تشغيل / إيقاف)
                 toggleMicManual() {
                   haptics.lightImpact();
                   soundFx.playClick();
@@ -1410,11 +1701,13 @@ jobs:
                     this.userWantsVoice = false;
                     this.safeStopVoice();
                     this.updateMicUI(false);
+                    m3alem.setState('idle', "وقفت التسجيل.. لما تجهز اضغط المايك تاني!");
                   } else {
                     this.userWantsVoice = true;
                     this.speechErrorCount = 0;
                     this.safeStartVoice();
                     this.updateMicUI(true);
+                    m3alem.setState('listening');
                   }
                 }
 
@@ -1424,29 +1717,29 @@ jobs:
                   const hint = document.getElementById('micActionHint');
                   if (mic) {
                     if (active) {
-                      mic.className = "w-14 h-14 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xl shadow-lg ring-4 ring-emerald-400/40 animate-pulse cursor-pointer transition active:scale-95";
+                      mic.className = "w-13 h-13 rounded-full bg-emerald-600 text-white flex items-center justify-center text-lg shadow-lg ring-4 ring-emerald-400/40 animate-pulse cursor-pointer transition active:scale-95";
                       mic.title = "انقر لإيقاف الميكروفون مؤقتاً";
                     } else {
-                      mic.className = "w-14 h-14 rounded-full bg-slate-700 hover:bg-slate-600 text-emerald-400 flex items-center justify-center text-xl shadow-lg ring-4 ring-white/10 cursor-pointer transition active:scale-95";
+                      mic.className = "w-13 h-13 rounded-full bg-slate-700 hover:bg-slate-600 text-emerald-400 flex items-center justify-center text-lg shadow-lg ring-4 ring-white/10 cursor-pointer transition active:scale-95";
                       mic.title = "انقر لبدء التحدث والشرح";
                     }
                   }
                   if (hint) {
                     if (active) {
-                      hint.innerText = "جارِ الاستماع...";
-                      hint.className = "text-[9px] font-black text-emerald-300 mt-1 animate-pulse";
+                      hint.innerText = "المعلم يستمع...";
+                      hint.className = "text-[9px] font-black text-emerald-300 mt-0.5 animate-pulse";
                     } else {
                       hint.innerText = "اضغط للتحدث";
-                      hint.className = "text-[9px] font-black text-amber-300 mt-1";
+                      hint.className = "text-[9px] font-black text-amber-300 mt-0.5";
                     }
                   }
                   if (pill) {
                     if (active) {
-                      pill.innerText = "المايك يستمع الآن.. تحدث بحرية! 🎙️⚡";
-                      pill.className = "text-emerald-400 font-mono text-[10px] animate-pulse";
+                      pill.innerText = "المعلم يستمع الآن.. تحدث بحرية! 🎙️⚡";
+                      pill.className = "text-emerald-400 font-mono text-[9px] animate-pulse";
                     } else {
                       pill.innerText = "المايك متوقف (اضغط للتحدث) 🎙️";
-                      pill.className = "text-amber-300 font-mono text-[10px]";
+                      pill.className = "text-amber-300 font-mono text-[9px]";
                     }
                   }
                 }
@@ -1609,7 +1902,7 @@ jobs:
                 promptTextInput() {
                   haptics.lightImpact();
                   soundFx.playClick();
-                  const input = prompt("💬 اكتب شرحك أو وصفك للكلمة هنا ليحلله الذكاء الاصطناعي:");
+                  const input = prompt("💬 اكتب شرحك أو وصفك للكلمة هنا ليحلله المعلم:");
                   if (input && input.trim()) {
                     this.sessionFinalTranscript = (this.sessionFinalTranscript + ' ' + input.trim()).trim();
                     this.processRealtimeSpeech(this.sessionFinalTranscript, []);
@@ -1656,8 +1949,9 @@ jobs:
                     if (!this.detectedCluesSet.has(hint)) {
                       if (this.matchesClue(cleanedText, words, hint)) {
                         this.detectedCluesSet.add(hint);
-                        haptics.lightImpact(); // رد فعل لمسي عند اكتشاف دلالة
+                        haptics.lightImpact();
                         soundFx.playClueDetected();
+                        m3alem.setState('listening', `الله عليك! لقطت دلالة (${hint}) في الجون! 🔥`);
                       }
                     }
                   });
@@ -1690,17 +1984,18 @@ jobs:
                   const nextIcon = document.getElementById('btnNextIcon');
 
                   nextBtn.disabled = false;
-                  nextBtn.className = "btn-3d py-3.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-2xl border-b-[5px] border-emerald-800 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-pointer shadow-lg btn-next-ready";
+                  nextBtn.className = "btn-3d py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-2xl border-b-[5px] border-emerald-800 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-pointer shadow-lg btn-next-ready";
                   nextIcon.className = "fa-solid fa-arrow-left text-sm";
                   nextLabel.innerText = "التالي (تم القبول بامتياز! 🚀)";
 
                   document.getElementById('aiConfidencePct').innerText = "100%";
                   document.getElementById('aiConfidenceBar').style.width = "100%";
-                  document.getElementById('aiStatusPill').innerText = "تم التحقق والقبول بنجاح! 🎯";
+                  document.getElementById('aiStatusPill').innerText = "المعلم وافق بامتياز! 🎯";
 
-                  haptics.successNotification(); // رد فعل لمسي عند نجاح المرحلة
+                  m3alem.setState('happy');
+                  haptics.successNotification();
                   soundFx.playSuccessFanfare();
-                  this.speak(`أحسنت الشرح! لقد عرفت أنك تقصد ${this.activeStage.w} بدقة تامة يا معلم!`);
+                  this.speak(`أحسنت الشرح! عرفت أنك تقصد ${this.activeStage.w} بدقة تامة يا معلم!`);
                   try { confetti({ particleCount: 90, spread: 60, origin: { y: 0.7 } }); } catch(e) {}
 
                   this.autoTransitionTimer = setTimeout(() => {
@@ -1743,10 +2038,11 @@ jobs:
 
                 onBust(reason) {
                   this.busts++;
-                  haptics.errorNotification(); // رد فعل لمسي تحذيري قوي عند الوقوع في محظور
+                  m3alem.setState('angry');
+                  haptics.errorNotification();
                   soundFx.playTabooAlarm();
                   this.speak("قفشتك يا معلم! كلمة ممنوعة!");
-                  alert(`🚨 قفشتك الحكم الآلي!\n${reason}\nاحتسبت مخالفة ونقصت نجمة!`);
+                  alert(`🚨 قفشتك المعلم!\n${reason}\nاحتسبت مخالفة ونقصت نجمة!`);
                   document.getElementById('playStarsDisplay').innerText = this.busts >= 2 ? '⭐' : (this.busts === 1 ? '⭐⭐' : '⭐⭐⭐');
                   this.detectedCluesSet.clear();
                   this.detectedDomainSet.clear();
@@ -1770,7 +2066,7 @@ jobs:
                     this.busts = 0;
                     this.isPlaying = true;
                     this.isSuccessApproved = false;
-                    this.userWantsVoice = false; // المايك لا يبدأ تلقائياً
+                    this.userWantsVoice = false;
                     this.detectedCluesSet.clear();
                     this.detectedDomainSet.clear();
                     this.accumulatedTranscript = '';
@@ -1794,7 +2090,7 @@ jobs:
                       const activeTaboos = this.activeStage.t.slice(0, this.activeWorldCfg.taboos);
                       activeTaboos.forEach(w => {
                         const span = document.createElement('span');
-                        span.className = 'bg-white text-red-700 px-2.5 py-1 rounded-lg border border-red-300 text-xs font-black shadow-sm flex items-center space-x-1 space-x-reverse';
+                        span.className = 'bg-white text-red-700 px-2 py-0.5 rounded-lg border border-red-300 text-xs font-black shadow-sm flex items-center space-x-1 space-x-reverse';
                         span.innerHTML = `<i class="fa-solid fa-xmark text-[10px] text-red-500"></i><span>${w}</span>`;
                         taboosBox.appendChild(span);
                       });
@@ -1810,14 +2106,14 @@ jobs:
                     document.getElementById('aiConfidencePct').innerText = '0%';
                     document.getElementById('aiConfidenceBar').style.width = '0%';
 
-                    // تحديث واجهة المايك لتبين أنه متوقف وبانتظار النقر
                     this.safeStopVoice();
                     this.updateMicUI(false);
+                    m3alem.setState('idle', `المرحلة ${validLvl}: وريني شطارتك واشرح "${this.activeStage.w}"! 💡`);
 
                     const nextBtn = document.getElementById('btnNextStage');
                     if (nextBtn) {
                       nextBtn.disabled = true;
-                      nextBtn.className = "btn-3d py-3.5 bg-slate-800 text-gray-500 rounded-2xl border-b-[4px] border-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-not-allowed opacity-60 transition-all duration-300";
+                      nextBtn.className = "btn-3d py-3 bg-slate-800 text-gray-500 rounded-2xl border-b-[4px] border-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-not-allowed opacity-60 transition-all duration-300";
                     }
                     const nextIcon = document.getElementById('btnNextIcon');
                     if (nextIcon) nextIcon.className = "fa-solid fa-hourglass-half";
@@ -1833,7 +2129,6 @@ jobs:
                     soundFx.playStageStart();
                     this.updateConfidence(0);
 
-                    // بدء عداد المرحلة فقط دون تشغيل المايك
                     this.startTimer();
                   } catch(err) {
                     console.error("Critical stage start error:", err);
@@ -1853,6 +2148,7 @@ jobs:
                     document.getElementById('playTimerText').innerText = `${this.timer}s`;
                     if (this.timer <= 0) {
                       clearInterval(this.timerInterval);
+                      m3alem.setState('angry', "الوقت خلص يا فنان ومسمعتش منك شرح كفاية!");
                       haptics.errorNotification();
                       soundFx.playTabooAlarm();
                       this.userWantsVoice = false;
@@ -2037,10 +2333,8 @@ jobs:
       - name: Grant Permissions to Android Manifest & Native Bridge
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # إضافة صلاحيات الميكروفون والاهتزاز VIBRATE في Manifest
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' $MANIFEST
 
-          # إعداد طلب الصلاحيات التلقائي في MainActivity
           MAIN_ACTIVITY="android/app/src/main/java/com/qoolyam3alem/pro/MainActivity.java"
           cat << 'EOF' > $MAIN_ACTIVITY
           package com.qoolyam3alem.pro;
