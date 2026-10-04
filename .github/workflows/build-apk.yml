@@ -1,4 +1,4 @@
-name: Build Light APK with In-Game Data Downloader (Pause/Resume & OBB)
+name: Build Android APK with Super AI Fixes & Permanent Clues
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-apk:
-    name: Build Light APK
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
@@ -32,162 +32,361 @@ jobs:
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Generate Complete Interactive Game HTML & Downloader UI
+      - name: Build Standalone Offline Assets & Generate App
         run: |
-          mkdir -p www
+          # 1. تثبيت مكتبات التصميم والأيقونات محلياً لتعمل بدون إنترنت 100%
+          npm init -y
+          npm install -D tailwindcss@3 @fortawesome/fontawesome-free canvas-confetti
+
+          mkdir -p www/css www/js www/webfonts
+
+          # نسخ ملفات الأيقونات والخطوط الخاصة بـ FontAwesome محلياً
+          cp -f node_modules/@fortawesome/fontawesome-free/css/all.min.css www/css/fontawesome.min.css
+          cp -rf node_modules/@fortawesome/fontawesome-free/webfonts/* www/webfonts/
+
+          # نسخ مؤثرات الفوز (Confetti) محلياً
+          cp -f node_modules/canvas-confetti/dist/confetti.browser.js www/js/confetti.browser.min.js
+
+          # 2. إنشاء ملف الواجهة التفاعلية بالكامل
           cat << 'EOF' > www/index.html
           <!DOCTYPE html>
           <html lang="ar" dir="rtl">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-            <title>قول يا معلّم 👑</title>
-            <link rel="preconnect" href="https://fonts.googleapis.com">
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@500;800;900&display=swap" rel="stylesheet">
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            <title>قول يا معلّم | النسخة الذهبية الفائقة 👑</title>
+            <!-- ملفات التنسيق والأيقونات المحلية لتعمل 100% بدون إنترنت -->
+            <link rel="stylesheet" href="css/fontawesome.min.css">
+            <link rel="stylesheet" href="css/tailwind.min.css">
+            <script src="js/confetti.browser.min.js"></script>
             <style>
-              * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; margin: 0; padding: 0; }
+              * { -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; }
+              .hidden { display: none !important; }
               body {
-                font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+                font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
                 background: linear-gradient(165deg, #090d16 0%, #111827 50%, #1e1b4b 100%);
                 min-height: 100vh;
                 margin: 0;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                color: #ffffff;
-                direction: rtl;
+                overflow-x: hidden;
               }
-              .hidden { display: none !important; }
-              #appContainer {
-                width: 100%;
-                max-width: 440px;
-                height: 100vh;
-                height: 100dvh;
-                background-color: #020617;
-                position: relative;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                overflow: hidden;
+              .font-tajawal {
+                font-family: 'Tajawal', 'Cairo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
               }
-              .clay-card { background: rgba(255, 255, 255, 0.96); border-radius: 24px; box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35); }
-              .btn-3d { transition: all 0.15s ease; box-shadow: 0 5px 0 rgba(0,0,0,0.35); cursor: pointer; }
-              .btn-3d:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.35); }
-              .font-tajawal { font-family: 'Tajawal', sans-serif; }
-              .mic-recording-pulse { animation: mic-wave 1.2s infinite; }
-              @keyframes mic-wave { 0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8); } 50% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); } }
+              .btn-3d {
+                transition: all 0.15s ease;
+                box-shadow: 0 6px 0 rgba(0,0,0,0.3), 0 10px 15px rgba(0,0,0,0.25);
+              }
+              .btn-3d:active:not(:disabled) {
+                transform: translateY(4px);
+                box-shadow: 0 2px 0 rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2);
+              }
+              .clay-card {
+                background: rgba(255, 255, 255, 0.96);
+                border-radius: 24px;
+                box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35);
+              }
+              @keyframes ready-pulse {
+                0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px #10b981); }
+                50% { transform: scale(1.03); filter: drop-shadow(0 0 20px #34d399); }
+              }
+              .btn-next-ready {
+                animation: ready-pulse 1.2s infinite;
+              }
+              @keyframes gift-bounce {
+                0%, 100% { transform: translateY(0) rotate(0deg); }
+                50% { transform: translateY(-8px) rotate(4deg); }
+              }
+              .gift-bounce { animation: gift-bounce 2s infinite ease-in-out; }
+              .no-scrollbar::-webkit-scrollbar { display: none; }
+              .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             </style>
           </head>
-          <body>
-            <div id="appContainer">
+          <body class="flex justify-center items-center select-none min-h-screen">
 
-              <!-- HEADER -->
-              <header style="width:100%; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; background:rgba(15,23,42,0.9); border-bottom:1px solid rgba(255,255,255,0.1);">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <div style="background:#fbbf24; color:#451a03; font-weight:900; font-size:12px; padding:4px 12px; border-radius:9999px;">
-                    ⭐ <span id="starsBalanceDisplay">1000</span> نجمة
+            <div id="appContainer" class="w-full max-w-[440px] h-[100dvh] sm:h-[900px] bg-slate-950 sm:rounded-[40px] shadow-2xl relative flex flex-col justify-between overflow-hidden border-0 sm:border-8 border-indigo-500/30">
+              
+              <!-- TOP GLOBAL HEADER -->
+              <header class="w-full px-4 pt-3 pb-2 flex justify-between items-center z-20 bg-slate-900/90 backdrop-blur-md border-b border-white/10">
+                <div class="flex items-center space-x-2 space-x-reverse">
+                  <!-- STARS WALLET -->
+                  <div class="bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-950 font-black text-xs px-3 py-1 rounded-full flex items-center space-x-1.5 space-x-reverse shadow-md border border-yellow-200">
+                    <span class="text-sm">⭐</span>
+                    <span id="starsBalanceDisplay">1000</span>
+                    <span class="text-[10px] text-amber-900 font-bold">نجمة</span>
                   </div>
-                  <span style="font-size:12px; font-weight:bold;">المستوى: <span id="currentLevelNav" style="color:#fde047; font-weight:900;">1</span></span>
+                  <span class="text-white text-xs font-bold">المرحلة: <span id="currentLevelNav" class="text-yellow-300 font-black">1</span></span>
                 </div>
-                <div>
-                  <span id="modelStatusBadge" style="background:#ef4444; color:white; font-size:10px; font-weight:bold; padding:4px 8px; border-radius:9999px;">جاري فحص البيانات...</span>
+                <div class="flex items-center space-x-1.5 space-x-reverse">
+                  <!-- SOUND TOGGLE (MUTE / UNMUTE) -->
+                  <button id="btnSoundToggle" onclick="window.game.toggleSound()" title="تشغيل / كتم الصوت" class="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 active:scale-90 transition">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-emerald-400"></i>
+                  </button>
+                  <button onclick="window.game.showScreen('screenMap')" title="الخريطة" class="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 active:scale-90 transition">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                  </button>
+                  <button onclick="window.game.showHome()" title="الرئيسية" class="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 active:scale-90 transition">
+                    <i class="fa-solid fa-house"></i>
+                  </button>
                 </div>
               </header>
 
-              <!-- PLAY SCREEN -->
-              <div id="screenPlay" style="flex:1; display:flex; flex-direction:column; justify-content:space-between; padding:16px;">
-                <div style="display:flex; justify-content:space-between; background:rgba(255,255,255,0.1); padding:8px 16px; border-radius:16px; font-size:12px; font-weight:bold;">
-                  <div>المستوى: <span style="color:#fde047;">#1</span></div>
-                  <div>الوقت: <span id="playTimerText" style="color:#fde047; font-weight:900;">60s</span></div>
+              <!-- SCREEN 1: HOME -->
+              <div id="screenHome" class="flex-1 flex flex-col items-center justify-between px-6 py-6 z-10 text-center">
+                <div class="pt-2">
+                  <div class="w-24 h-24 mx-auto bg-gradient-to-tr from-indigo-500 to-emerald-400 rounded-3xl flex items-center justify-center shadow-2xl transform rotate-3 border-4 border-indigo-300">
+                    <span class="text-5xl">👑</span>
+                  </div>
+                  <h1 class="text-3xl font-black text-white mt-3 font-tajawal drop-shadow">قول يا معلّم!</h1>
+                  <p class="text-indigo-200 text-xs font-bold mt-1">تحدي الـ 200 مرحلة مع محلل الدلالات الصوتي فائق الحساسية 🎙️⚡</p>
                 </div>
 
-                <!-- MIC BUTTON -->
-                <div style="margin:8px 0;">
-                  <button id="btnMicAction" onclick="window.game.toggleMic()" style="width:100%; padding:14px; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:8px; background:#4f46e5; color:white; font-weight:900; font-size:14px; border:none;" class="btn-3d">
-                    <i class="fa-solid fa-microphone"></i>
-                    <span id="micActionLabel">اضغط للتحدث 🎙️</span>
+                <div class="w-full clay-card p-4 text-right space-y-2">
+                  <div class="flex items-center space-x-2 space-x-reverse text-indigo-950 font-black text-xs border-b pb-1.5">
+                    <i class="fa-solid fa-bolt text-amber-500 text-sm"></i>
+                    <span>طريقة اللعب والتحكم بالمايك:</span>
+                  </div>
+                  <p class="text-[11px] text-slate-700 leading-relaxed font-bold">
+                    • <strong>تحكم يدوي كامل بالتسجيل:</strong> المايك لا يبدأ تلقائياً، انقر زر المايك عند رغبتك بالشرح واضغط لإيقافه في أي وقت.<br>
+                    • <strong>حساسية فائقة للصوت:</strong> يحلل الكلمات والهمسات وتلميحاتك حتى لو كان الصوت منخفضاً.<br>
+                    • <strong>كشف سريع للدلالات:</strong> يكتشف الكلمات المطلوبة وشبيهاتها بسرعة خاطفة ويرفع شريط الذكاء مباشرة!
+                  </p>
+                </div>
+
+                <div class="w-full space-y-3 pb-3">
+                  <button onclick="window.game.resumeGame()" class="btn-3d w-full py-4 bg-gradient-to-r from-emerald-500 to-green-600 rounded-3xl border-b-[5px] border-emerald-800 text-white text-xl font-black flex items-center justify-center space-x-2 space-x-reverse">
+                    <i class="fa-solid fa-play"></i>
+                    <span>ابدأ اللعب (المرحلة <span id="homeResumeLvl">1</span>)</span>
+                  </button>
+                  <button onclick="window.game.showScreen('screenMap')" class="btn-3d w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-700 rounded-2xl border-b-[5px] border-indigo-900 text-white font-black text-sm flex items-center justify-center space-x-2 space-x-reverse">
+                    <i class="fa-solid fa-map"></i>
+                    <span>استعراض خريطة الـ 200 مرحلة 🗺️</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- SCREEN 2: LEVEL MAP (200 STAGES) -->
+              <div id="screenMap" class="hidden flex-1 flex flex-col z-10 overflow-hidden">
+                <div class="px-2 pt-2 pb-1 bg-slate-900/60 border-b border-white/10 flex overflow-x-auto no-scrollbar space-x-1.5 space-x-reverse text-center">
+                  <button onclick="window.game.filterWorld(1)" id="tabWorld1" class="px-3 py-1.5 rounded-xl font-black text-xs whitespace-nowrap bg-indigo-600 text-white shadow">
+                    🏡 حارة المبتدئين (1-40)
+                  </button>
+                  <button onclick="window.game.filterWorld(2)" id="tabWorld2" class="px-3 py-1.5 rounded-xl font-black text-xs whitespace-nowrap bg-white/10 text-gray-300">
+                    🎬 المشاهير والميمز (41-80)
+                  </button>
+                  <button onclick="window.game.filterWorld(3)" id="tabWorld3" class="px-3 py-1.5 rounded-xl font-black text-xs whitespace-nowrap bg-white/10 text-gray-300">
+                    📜 سوق الحِرّيفة (81-120)
+                  </button>
+                  <button onclick="window.game.filterWorld(4)" id="tabWorld4" class="px-3 py-1.5 rounded-xl font-black text-xs whitespace-nowrap bg-white/10 text-gray-300">
+                    🔬 برج الخبراء (121-160)
+                  </button>
+                  <button onclick="window.game.filterWorld(5)" id="tabWorld5" class="px-3 py-1.5 rounded-xl font-black text-xs whitespace-nowrap bg-white/10 text-gray-300">
+                    👑 عرش الأساطير (161-200)
                   </button>
                 </div>
 
-                <!-- CARD -->
-                <div class="clay-card" style="padding:16px; text-align:center; border:4px solid #c7d2fe;">
-                  <span style="font-size:11px; font-weight:900; color:#312e81; background:#e0e7ff; padding:2px 12px; border-radius:9999px;">أكلات شعبية</span>
-                  <div id="playWord" class="font-tajawal" style="font-size:28px; font-weight:900; color:#0f172a; margin:8px 0;">كشري</div>
-
-                  <!-- TABOOS -->
-                  <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:8px; text-align:right;">
-                    <span style="color:#b91c1c; font-weight:900; font-size:12px; display:block; margin-bottom:4px;">الممنوعات:</span>
-                    <div id="playTaboosContainer" style="display:flex; gap:6px; font-size:12px; font-weight:bold; color:#1e293b;">
-                      <span style="background:white; padding:2px 8px; border-radius:6px; border:1px solid #fca5a5;">صلصة</span>
-                      <span style="background:white; padding:2px 8px; border-radius:6px; border:1px solid #fca5a5;">عدس</span>
-                    </div>
-                  </div>
-
-                  <!-- RADAR -->
-                  <div style="margin-top:12px; text-align:right;">
-                    <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold; color:#334155; margin-bottom:4px;">
-                      <span>اقتناع الذكاء الاصطناعي:</span>
-                      <span id="aiConfidencePct" style="font-weight:900; color:#4338ca;">0%</span>
-                    </div>
-                    <div style="width:100%; background:#e2e8f0; border-radius:9999px; height:10px; overflow:hidden;">
-                      <div id="aiConfidenceBar" style="background:#10b981; height:10px; width:0%; transition:all 0.3s;"></div>
-                    </div>
-                  </div>
+                <div id="worldInfoBanner" class="px-4 py-2 bg-indigo-950/70 text-right flex justify-between items-center text-xs text-indigo-200 border-b border-white/5">
+                  <span id="worldNameTitle" class="font-black text-yellow-300">عالم 1: حارة المبتدئين</span>
+                  <span id="worldRuleDesc" class="text-[11px] font-bold">الوقت: 60ث • 2 ممنوعات فقط</span>
                 </div>
 
-                <!-- LIVE SPEECH BOX -->
-                <div style="background:rgba(15,23,42,0.9); border-radius:16px; padding:12px; border:1px solid rgba(255,255,255,0.1); text-align:right;">
-                  <div style="display:flex; justify-content:space-between; font-size:11px; color:#fde047; font-weight:bold; margin-bottom:4px;">
-                    <span>ما يسمعه المايك الآن:</span>
-                    <span id="aiStatusPill" style="color:#34d399;">جاهز للتحليل ⚡</span>
-                  </div>
-                  <div id="playTranscript" style="font-size:12px; font-weight:bold; color:white; min-height:30px;">
-                    تحدث عبر المايك وسيقوم الذكاء الاصطناعي بتحليله أوفلاين فوراً...
-                  </div>
-                </div>
-
-                <!-- NEXT BUTTON -->
-                <button id="btnNextStage" disabled style="width:100%; padding:14px; background:#1e293b; color:#6b7280; border-radius:16px; font-weight:900; font-size:14px; border:none;" class="btn-3d">
-                  في انتظار الشرح... (0%)
-                </button>
+                <div id="stagesScrollContainer" class="flex-1 overflow-y-auto px-4 py-4 grid grid-cols-4 gap-3 text-center content-start"></div>
               </div>
 
-              <!-- MODAL: DOWNLOAD GAME DATA DIALOG -->
-              <div id="modalDownload" class="hidden" style="position:absolute; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:100; display:flex; align-items:center; justify-content:center; padding:16px;">
-                <div class="clay-card" style="width:100%; max-width:380px; padding:24px; text-align:center;">
-                  <div style="font-size:40px; margin-bottom:8px;">📦</div>
-                  <h3 class="font-tajawal" style="font-size:20px; font-weight:900; color:#0f172a; margin-bottom:8px;">تحميل بيانات الصوت للعبة</h3>
-                  <p style="font-size:12px; color:#475569; font-weight:bold; line-height:1.6; margin-bottom:16px;">
-                    لتتمكن اللعبة من تحليل صوتك بدقة وبدون الحاجة لإنترنت نهائياً (Offline)، يجب تحميل حزمة البيانات الصوتية لمرة واحدة وحفظها في مجلد اللعبة.
+              <!-- SCREEN 3: GAMEPLAY -->
+              <div id="screenPlay" class="hidden flex-1 flex flex-col items-center justify-between px-4 py-2 z-10">
+                <!-- TOP STAGE INFO -->
+                <div class="w-full flex justify-between items-center bg-white/10 backdrop-blur-md rounded-2xl px-4 py-1.5 border border-white/20 text-white font-bold text-xs">
+                  <div>المرحلة: <span id="playStageNum" class="text-yellow-300 font-black">#1</span> (<span id="playWorldTag" class="text-indigo-200">حارة المبتدئين</span>)</div>
+                  <div>المحاولات السليمة: <span id="playStarsDisplay" class="text-amber-400 font-black">⭐⭐⭐</span></div>
+                </div>
+
+                <!-- TIMER & LIVE MIC ICON (MANUAL TOGGLE) -->
+                <div class="flex items-center space-x-3 space-x-reverse my-1">
+                  <div class="flex flex-col items-center">
+                    <div id="micIndicator" onclick="window.game.toggleMicManual()" title="انقر لبدء التحدث والشرح" class="w-14 h-14 rounded-full bg-slate-700 text-emerald-400 flex items-center justify-center text-xl shadow-lg ring-4 ring-white/10 cursor-pointer transition active:scale-95">
+                      <i class="fa-solid fa-microphone"></i>
+                    </div>
+                    <span id="micActionHint" class="text-[9px] font-black text-amber-300 mt-1">اضغط للتحدث</span>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-[11px] text-gray-300 font-bold">الوقت المتبقي:</div>
+                    <div id="playTimerText" class="text-3xl font-black text-yellow-300 font-tajawal">60s</div>
+                  </div>
+                </div>
+
+                <!-- CARD -->
+                <div class="w-full clay-card p-4 relative overflow-hidden text-center shadow-2xl border-4 border-indigo-200">
+                  <div class="flex justify-between items-center mb-1">
+                    <span id="playCategory" class="bg-indigo-100 text-indigo-900 text-[10px] font-black px-2.5 py-0.5 rounded-full">
+                      أكلات شعبية
+                    </span>
+
+                    <div class="flex items-center space-x-1.5 space-x-reverse">
+                      <!-- QUICK TEXT INPUT FALLBACK BUTTON -->
+                      <button onclick="window.game.promptTextInput()" title="كتابة الشرح بالكيبورد" class="p-1 px-2 bg-slate-200 text-slate-800 font-black text-[11px] rounded-xl border border-slate-300 hover:bg-slate-300 active:scale-95 transition">
+                        <i class="fa-solid fa-keyboard"></i>
+                      </button>
+
+                      <!-- HINT PURCHASE BUTTON -->
+                      <button id="btnBuyHint" onclick="window.game.buyHint()" class="btn-3d py-1 px-2.5 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-950 font-black text-[11px] rounded-xl flex items-center space-x-1 space-x-reverse border border-amber-200 shadow active:scale-95 transition">
+                        <span>💡</span>
+                        <span id="hintBtnLabel">كشف دلالة (-30 ⭐)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="playWord" class="text-3xl font-black text-slate-900 my-1 font-tajawal">
+                    كشري
+                  </div>
+
+                  <!-- PERMANENTLY REVEALED HINTS BANNER -->
+                  <div id="revealedHintBanner" class="hidden mb-2 p-1.5 bg-amber-50 border border-amber-300 rounded-xl text-right">
+                    <div class="text-[10px] font-black text-amber-900 flex items-center space-x-1 space-x-reverse mb-0.5">
+                      <span>💡</span>
+                      <span>دلالات مكشوفة لك (تحدث عنها أو عن كلمات تشبهها):</span>
+                    </div>
+                    <div id="revealedHintsContainer" class="flex flex-wrap gap-1 text-xs font-bold text-amber-950"></div>
+                  </div>
+
+                  <!-- TABOOS -->
+                  <div class="bg-red-50 border border-red-200 rounded-xl p-2 text-right">
+                    <div class="flex justify-between items-center mb-1 text-red-600 font-black text-[11px]">
+                      <div class="flex items-center space-x-1 space-x-reverse">
+                        <i class="fa-solid fa-ban"></i>
+                        <span>الممنوعات على لسانك:</span>
+                      </div>
+                      <span id="playTabooCountLabel" class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">2 كلمات</span>
+                    </div>
+                    <div id="playTaboosContainer" class="flex flex-wrap gap-1.5 text-xs font-bold text-slate-800"></div>
+                  </div>
+
+                  <!-- AI CONFIDENCE RADAR BAR -->
+                  <div class="mt-2 pt-2 border-t border-slate-200 text-right">
+                    <div class="flex justify-between items-center text-[10px] font-bold text-slate-600 mb-1">
+                      <span><i class="fa-solid fa-brain text-indigo-600"></i> اقتناع الذكاء الاصطناعي بشرحك:</span>
+                      <span id="aiConfidencePct" class="font-black font-mono text-xs text-indigo-700">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                      <div id="aiConfidenceBar" class="bg-gradient-to-r from-amber-400 to-emerald-500 h-2.5 rounded-full transition-all duration-300 w-0"></div>
+                    </div>
+                    <div id="aiDetectedClues" class="flex flex-wrap gap-1 mt-1.5 min-h-[18px]"></div>
+                  </div>
+                </div>
+
+                <!-- REALTIME SPEECH MONITOR (LIVE STREAMING) -->
+                <div class="w-full bg-black/60 backdrop-blur-md rounded-2xl p-2.5 border border-white/10 text-right">
+                  <div class="flex justify-between items-center text-[11px] text-yellow-300 font-bold mb-1">
+                    <span><i class="fa-solid fa-ear-listen animate-pulse"></i> ما يسمعه الميكروفون الآن (مباشر):</span>
+                    <span id="aiStatusPill" class="text-amber-300 font-mono text-[10px]">المايك متوقف (اضغط للتحدث) 🎙️</span>
+                  </div>
+                  <div id="playTranscript" class="text-xs font-bold text-white min-h-[30px] max-h-[36px] overflow-hidden leading-tight">
+                    اضغط على زر الميكروفون بالأعلى وتحدث بحرية ليشرح الذكاء الاصطناعي كلماتك...
+                  </div>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div class="w-full grid grid-cols-2 gap-2.5 pb-2">
+                  <button onclick="window.game.abandonStage()" class="btn-3d py-3.5 bg-slate-800 rounded-2xl border-b-[4px] border-slate-950 text-white font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>انسحاب للخريطة</span>
+                  </button>
+
+                  <button id="btnNextStage" onclick="window.game.onNextClicked()" disabled class="btn-3d py-3.5 bg-slate-800 text-gray-500 rounded-2xl border-b-[4px] border-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-not-allowed opacity-60 transition-all duration-300">
+                    <i id="btnNextIcon" class="fa-solid fa-hourglass-half"></i>
+                    <span id="btnNextLabel">في انتظار الشرح... (0%)</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- SCREEN 4: LEVEL VICTORY SCREEN -->
+              <div id="screenWin" class="hidden flex-1 flex flex-col items-center justify-between px-6 py-6 z-10 text-center">
+                <div class="pt-4">
+                  <div class="w-20 h-20 mx-auto bg-amber-400 rounded-full flex items-center justify-center text-4xl shadow-2xl animate-bounce">
+                    🌟
+                  </div>
+                  <h2 class="text-3xl font-black text-white mt-3 font-tajawal drop-shadow">
+                    أحسنت يا معلّم!
+                  </h2>
+                  <div id="winStarsAwarded" class="text-3xl text-amber-300 my-1">⭐⭐⭐</div>
+                  <p id="winStageLabel" class="text-indigo-200 text-xs font-bold">حكم الذكاء الاصطناعي بنجاحك الساحق!</p>
+                </div>
+
+                <div class="w-full clay-card p-4 text-right space-y-2">
+                  <div class="flex justify-between items-center border-b pb-1.5 text-xs font-bold">
+                    <span class="text-slate-600">المرحلة القادمة:</span>
+                    <span id="nextLevelUnlockText" class="font-black text-indigo-700">مرحلة 2 (مفتوحة الآن 🔓)</span>
+                  </div>
+                  <div class="flex justify-between items-center text-xs font-bold">
+                    <span class="text-slate-600">مكافأة الفوز:</span>
+                    <span class="font-black text-emerald-600">+25 نجمة ذهبية إلى محفظتك ⭐</span>
+                  </div>
+                </div>
+
+                <div class="w-full space-y-2.5 pb-2">
+                  <button onclick="window.game.playNextStage()" class="btn-3d w-full py-3.5 bg-gradient-to-r from-emerald-500 to-green-600 rounded-2xl border-b-[5px] border-emerald-800 text-white font-black text-base flex items-center justify-center space-x-2 space-x-reverse">
+                    <span>الانتقال للمرحلة التالية</span>
+                    <i class="fa-solid fa-arrow-left"></i>
+                  </button>
+                  <button onclick="window.game.showScreen('screenMap')" class="btn-3d w-full py-3 bg-white text-slate-800 rounded-2xl border-b-[4px] border-slate-300 font-black text-xs">
+                    العودة لخريطة المراحل 🗺️
+                  </button>
+                </div>
+              </div>
+
+              <!-- MODAL: FIRST TIME INSTALL WELCOME (1000 STARS) -->
+              <div id="modalWelcomeBonus" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                <div class="w-full max-w-sm clay-card p-6 flex flex-col items-center text-center space-y-3 relative overflow-hidden border-4 border-yellow-300 shadow-2xl">
+                  <div class="w-24 h-24 bg-gradient-to-tr from-amber-400 to-yellow-200 rounded-3xl flex items-center justify-center text-5xl shadow-2xl gift-bounce border-2 border-white">
+                    👑
+                  </div>
+                  <h3 class="text-2xl font-black text-slate-900 font-tajawal">أهلاً بك يا معلّم!</h3>
+                  <div class="bg-amber-100 text-amber-950 font-black text-lg px-5 py-2 rounded-full border border-amber-300 shadow">
+                    +1000 نجمة ذهبية مجاناً ⭐
+                  </div>
+                  <p class="text-xs text-slate-600 font-bold leading-relaxed">
+                    هدية تثبيت اللعبة لأول مرة في هاتفك! استخدم النجوم لكشف الكلمات الدلالية والاستمتاع بتحدي الـ 200 مرحلة.
                   </p>
+                  <button onclick="window.game.closeWelcomeModal()" class="btn-3d w-full py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-black text-sm rounded-2xl border-b-[4px] border-emerald-800 shadow">
+                    ابدأ المغامرة الآن 🚀
+                  </button>
+                </div>
+              </div>
 
-                  <!-- PROGRESS BAR (HIDDEN INITIALLY) -->
-                  <div id="downloadProgressArea" class="hidden" style="margin-bottom:16px; text-align:right;">
-                    <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold; color:#1e293b; margin-bottom:4px;">
-                      <span id="downloadStatusText">جاري الاتصال...</span>
-                      <span id="downloadPctText" style="color:#4f46e5; font-weight:900;">0%</span>
-                    </div>
-                    <div style="width:100%; background:#e2e8f0; height:12px; border-radius:9999px; overflow:hidden;">
-                      <div id="downloadProgressBar" style="background:linear-gradient(to right, #4f46e5, #10b981); width:0%; height:12px; transition:width 0.2s;"></div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:10px; color:#64748b; font-weight:bold; margin-top:4px;">
-                      <span id="downloadSizeText">0 MB / -- MB</span>
-                      <span id="downloadSpeedText">0 KB/s</span>
-                    </div>
+              <!-- MODAL: DAILY REWARD (300 STARS) -->
+              <div id="modalDailyReward" class="hidden absolute inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                <div class="w-full max-w-sm clay-card p-6 flex flex-col items-center text-center space-y-3 relative overflow-hidden border-4 border-amber-300 shadow-2xl">
+                  <div class="w-24 h-24 bg-gradient-to-tr from-amber-400 to-yellow-200 rounded-3xl flex items-center justify-center text-5xl shadow-2xl gift-bounce border-2 border-white">
+                    🎁
                   </div>
+                  <h3 class="text-2xl font-black text-slate-900 font-tajawal">مكافأة الدخول اليومي!</h3>
+                  <div class="bg-amber-100 text-amber-950 font-black text-lg px-5 py-2 rounded-full border border-amber-300 shadow">
+                    +300 نجمة ذهبية ⭐
+                  </div>
+                  <p class="text-xs text-slate-600 font-bold leading-relaxed">
+                    أهلاً بك مجدداً يا معلّم! تمت إضافة 300 نجمة إلى محفظتك. استخدمها في كشف الدلالات والمساعدات أثناء التحدي!
+                  </p>
+                  <button onclick="window.game.closeDailyRewardModal()" class="btn-3d w-full py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-black text-sm rounded-2xl border-b-[4px] border-emerald-800 shadow">
+                    استلام النجوم ومتابعة اللعب 🚀
+                  </button>
+                </div>
+              </div>
 
-                  <!-- ACTIONS -->
-                  <div id="downloadActionButtons" style="display:flex; gap:8px;">
-                    <button id="btnStartDownload" onclick="window.game.startDataDownload()" style="flex:1; padding:12px; background:#10b981; color:white; font-weight:900; border-radius:12px; border:none;" class="btn-3d">
-                      بدء التحميل الآن 🚀
+              <!-- MODAL: EXIT CONFIRMATION -->
+              <div id="modalExitConfirm" class="hidden absolute inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                <div class="w-full max-w-sm clay-card p-5 flex flex-col items-center text-center space-y-3 relative overflow-hidden border-2 border-indigo-200 shadow-2xl">
+                  <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl shadow">
+                    <i class="fa-solid fa-door-open"></i>
+                  </div>
+                  <h3 class="text-xl font-black text-slate-900 font-tajawal">الخروج من اللعبة</h3>
+                  <p class="text-xs text-slate-600 font-bold">
+                    هل أنت متأكد من رغبتك في إغلاق اللعبة والخروج؟
+                  </p>
+                  <div class="grid grid-cols-2 gap-2.5 w-full pt-1">
+                    <button onclick="window.game.closeExitModal()" class="btn-3d py-3 bg-slate-200 text-slate-800 font-black text-xs rounded-xl border-b-[4px] border-slate-300">
+                      مواصلة اللعب 🎮
                     </button>
-                  </div>
-                  
-                  <div id="downloadControlButtons" class="hidden" style="display:flex; gap:8px;">
-                    <button id="btnPauseResume" onclick="window.game.togglePauseResume()" style="flex:1; padding:12px; background:#f59e0b; color:white; font-weight:900; border-radius:12px; border:none;" class="btn-3d">
-                      إيقاف مؤقت ⏸️
+                    <button onclick="window.game.confirmExit()" class="btn-3d py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white font-black text-xs rounded-xl border-b-[4px] border-red-800">
+                      نعم، خروج 👋
                     </button>
                   </div>
                 </div>
@@ -195,182 +394,1381 @@ jobs:
 
             </div>
 
+            <!-- JAVASCRIPT GAME ENGINE -->
             <script>
-              class GameApp {
+              class SoundFxManager {
                 constructor() {
-                  this.isListening = false;
-                  this.isModelReady = false;
-                  this.isDownloading = false;
-                  this.isPaused = false;
-                  this.init();
+                  this.ctx = null;
+                  this.enabled = true;
                 }
-
                 init() {
-                  setTimeout(() => {
-                    this.checkModelStatus();
-                  }, 500);
-                }
-
-                checkModelStatus() {
-                  if (window.AndroidSpeech && window.AndroidSpeech.isModelAvailable) {
-                    if (window.AndroidSpeech.isModelAvailable()) {
-                      this.onModelReady();
-                    } else {
-                      this.showDownloadModal();
-                    }
-                  } else {
-                    // Fallback
-                    setTimeout(() => this.checkModelStatus(), 500);
+                  if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                  }
+                  if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
                   }
                 }
-
-                showDownloadModal() {
-                  const modal = document.getElementById('modalDownload');
-                  modal.classList.remove('hidden');
+                playTone(freq, type = 'sine', duration = 0.12, vol = 0.2) {
+                  if (!this.enabled) return;
+                  try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                  } catch(e) {}
                 }
-
-                startDataDownload() {
-                  document.getElementById('btnStartDownload').classList.add('hidden');
-                  document.getElementById('downloadProgressArea').classList.remove('hidden');
-                  document.getElementById('downloadControlButtons').classList.remove('hidden');
-                  this.isDownloading = true;
-
-                  if (window.AndroidSpeech && window.AndroidSpeech.startDownload) {
-                    window.AndroidSpeech.startDownload();
-                  }
+                playClick() { this.playTone(700, 'sine', 0.05, 0.18); }
+                playStageStart() {
+                  this.playTone(440, 'triangle', 0.1, 0.2);
+                  setTimeout(() => this.playTone(554.37, 'triangle', 0.12, 0.2), 80);
+                  setTimeout(() => this.playTone(659.25, 'triangle', 0.2, 0.25), 160);
                 }
-
-                togglePauseResume() {
-                  const btn = document.getElementById('btnPauseResume');
-                  if (!this.isPaused) {
-                    if (window.AndroidSpeech && window.AndroidSpeech.pauseDownload) {
-                      window.AndroidSpeech.pauseDownload();
-                    }
-                    this.isPaused = true;
-                    btn.innerText = "استئناف التحميل ▶️";
-                    btn.style.background = "#10b981";
-                    document.getElementById('downloadStatusText').innerText = "تم الإيقاف مؤقتاً";
-                  } else {
-                    if (window.AndroidSpeech && window.AndroidSpeech.resumeDownload) {
-                      window.AndroidSpeech.resumeDownload();
-                    }
-                    this.isPaused = false;
-                    btn.innerText = "إيقاف مؤقت ⏸️";
-                    btn.style.background = "#f59e0b";
-                    document.getElementById('downloadStatusText').innerText = "جاري التحميل...";
-                  }
+                playHintReveal() {
+                  this.playTone(987.77, 'sine', 0.08, 0.25);
+                  setTimeout(() => this.playTone(1318.51, 'sine', 0.25, 0.3), 70);
                 }
-
-                updateDownloadProgress(pct, downloadedMb, totalMb, speedKb) {
-                  document.getElementById('downloadProgressBar').style.width = `${pct}%`;
-                  document.getElementById('downloadPctText').innerText = `${pct}%`;
-                  document.getElementById('downloadSizeText').innerText = `${downloadedMb} MB / ${totalMb} MB`;
-                  document.getElementById('downloadSpeedText').innerText = `${speedKb} KB/s`;
-                  document.getElementById('downloadStatusText').innerText = "جاري التنزيل...";
+                playClueDetected() {
+                  this.playTone(600, 'sine', 0.08, 0.2);
+                  setTimeout(() => this.playTone(800, 'sine', 0.15, 0.25), 60);
                 }
-
-                onDownloadComplete() {
-                  document.getElementById('downloadStatusText').innerText = "جاري فك الضغط والتثبيت في مجلد اللعبة...";
-                  document.getElementById('downloadProgressBar').style.width = "100%";
-                  document.getElementById('downloadControlButtons').classList.add('hidden');
+                playTabooAlarm() {
+                  this.playTone(180, 'sawtooth', 0.35, 0.35);
+                  setTimeout(() => this.playTone(150, 'sawtooth', 0.4, 0.35), 150);
                 }
-
-                onModelReady() {
-                  this.isModelReady = true;
-                  const modal = document.getElementById('modalDownload');
-                  if (modal) modal.classList.add('hidden');
-
-                  const badge = document.getElementById('modelStatusBadge');
-                  badge.innerText = "البيانات جاهزة (أوفلاين 100%) ✓";
-                  badge.style.background = "#10b981";
+                playSuccessFanfare() {
+                  const notes = [523.25, 659.25, 783.99, 1046.50];
+                  notes.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 'sine', 0.18, 0.3), idx * 100);
+                  });
                 }
-
-                toggleMic() {
-                  if (!this.isModelReady) {
-                    this.showDownloadModal();
-                    return;
-                  }
-
-                  const btn = document.getElementById('btnMicAction');
-                  const label = document.getElementById('micActionLabel');
-
-                  if (!this.isListening) {
-                    if (window.AndroidSpeech) {
-                      window.AndroidSpeech.startListening();
-                    }
-                    this.isListening = true;
-                    btn.style.background = "#10b981";
-                    btn.classList.add('mic-recording-pulse');
-                    label.innerText = "🔴 يتم الاستماع أوفلاين.. تكلّم!";
-                  } else {
-                    if (window.AndroidSpeech) {
-                      window.AndroidSpeech.stopListening();
-                    }
-                    this.isListening = false;
-                    btn.style.background = "#4f46e5";
-                    btn.classList.remove('mic-recording-pulse');
-                    label.innerText = "اضغط للتحدث 🎙️";
-                  }
-                }
-
-                onSpeech(text) {
-                  document.getElementById('playTranscript').innerText = `"${text}"`;
-                  const clean = text.toLowerCase();
-                  if (clean.includes("كشري") || clean.includes("طعام") || clean.includes("مصري")) {
-                    document.getElementById('aiConfidencePct').innerText = "85%";
-                    document.getElementById('aiConfidenceBar').style.width = "85%";
-                    const nextBtn = document.getElementById('btnNextStage');
-                    nextBtn.disabled = false;
-                    nextBtn.style.background = "#10b981";
-                    nextBtn.style.color = "white";
-                    nextBtn.innerText = "أحسنت! المستوى التالي 🚀";
-                  }
+                playReward() {
+                  const notes = [440, 554, 659, 880];
+                  notes.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 'triangle', 0.2, 0.25), idx * 90);
+                  });
                 }
               }
 
-              window.game = new GameApp();
+              const soundFx = new SoundFxManager();
 
-              // NATIVE EVENT CALLS
-              window.onNativeDownloadProgress = function(pct, downMb, totalMb, speed) {
-                window.game.updateDownloadProgress(pct, downMb, totalMb, speed);
+              // COMPREHENSIVE CATEGORY LEXICONS
+              const CATEGORY_LEXICONS = {
+                "أكلات شعبية": ["اكل", "اكله", "طعام", "وجبه", "طبخ", "مطعم", "لذيذ", "سخن", "حار", "شبع", "فطار", "غدا", "عشا", "بلدي", "مصر", "طاسه", "حله", "طبق", "شوكه", "معلقه", "طماطم", "رز", "عيش", "لحمه"],
+                "مشروبات": ["شرب", "مشروب", "كوب", "عصير", "سخن", "ساقع", "شاي", "قهوه", "كبايه", "نعناع", "سكر", "فنجان", "بارد", "ثلج", "ري", "عطش", "كوباية", "ميه", "مايه"],
+                "فواكه": ["فاكهه", "حلو", "شجر", "طبيعي", "قشر", "صيف", "موسم", "لذيذ", "طازج", "بستان", "فيتامين", "عصير", "طعم"],
+                "أجهزة": ["جهاز", "شاشه", "كهرباء", "زرار", "بطاريه", "نشغل", "طاقه", "تقنيه", "بيت", "سلك", "فيشه", "صوت", "الكتروني", "تلفون", "موبايل"],
+                "شارع ومواصلات": ["شارع", "طريق", "عربيه", "سواق", "ركاب", "مواصلات", "زحمه", "اجره", "عجل", "سفر", "موقف", "مرور", "سير", "سياره", "محطه"],
+                "حيوانات": ["حيوان", "اليف", "فرو", "صوت", "رجلين", "يمشي", "غابه", "بيت", "يطير", "ريش", "ذيل", "كائن", "بري"],
+                "منزل": ["بيت", "شقه", "اوضه", "غرفه", "صالون", "مطبخ", "حمام", "نستخدم", "عفش", "اساس", "حاجه", "مكان"],
+                "أدوات": ["اداه", "نستخدمها", "حديد", "نمسكها", "نصلح", "شغل", "صنعه", "ورشه", "يدويه", "اله", "نمسك", "نقطع"],
+                "أمثال شعبية": ["مثل", "مقوله", "حكمه", "كلام", "قديم", "اجدادنا", "معنى", "حكايه", "قصه", "عبره", "شعب", "مصر"],
+                "علوم وفيزياء": ["علم", "فيزياء", "قانون", "طبيعه", "كون", "ارض", "حركه", "سرعه", "ماده", "طاقه", "تجربه", "علماء", "حراره"],
+                "علم الفلك": ["فضاء", "سماء", "نجوم", "كواكب", "مجره", "تلسكوب", "فلك", "كون", "شمس", "قمر", "مدار", "كوكب"],
+                "تكنولوجيا": ["كمبيوتر", "انترنت", "برمجه", "رقمي", "ذكاء", "اله", "مستقبل", "بيانات", "شبكه", "تقنيه", "برنامج", "روبوت"]
               };
 
-              window.onNativeDownloadComplete = function() {
-                window.game.onDownloadComplete();
+              const RAW_STAGES = [
+                // WORLD 1: (1-40) Easy - 60s - 2 Taboos
+                {w:"كشري", t:["صلصة", "عدس"], c:"أكلات شعبية", h:["حلة", "شطة", "مصري", "طعام"]},
+                {w:"شاي بلبن", t:["شاي", "حليب"], c:"مشروبات", h:["كوب", "صباح", "سخن", "إفطار"]},
+                {w:"بطيخ", t:["أحمر", "بزر"], c:"فواكه", h:["صيف", "سكين", "ساقع", "قشر"]},
+                {w:"فلافل", t:["طعمية", "زيت"], c:"أكلات شعبية", h:["فول", "قلي", "سندوتش", "مطعم"]},
+                {w:"شاحن", t:["سلك", "كهرباء"], c:"أجهزة", h:["طاقة", "موبايل", "تلفون", "بطارية"]},
+                {w:"مروحة", t:["هواء", "صيف"], c:"منزل", h:["سقف", "ريش", "حر", "دوران"]},
+                {w:"نظارة", t:["عين", "عدسات"], c:"أدوات", h:["رؤية", "قراءة", "إطار", "شمس"]},
+                {w:"ساعة يد", t:["وقت", "عقارب"], c:"أدوات", h:["دقائق", "معصم", "موعد", "رقم"]},
+                {w:"ثلاجة", t:["مطبخ", "ساقع"], c:"منزل", h:["تبريد", "طعام", "ثلج", "فريزر"]},
+                {w:"شمسية", t:["مطر", "شمس"], c:"أدوات", h:["ظل", "سماء", "حماية", "قماش"]},
+                {w:"قطة", t:["مواء", "حيوان"], c:"حيوانات", h:["فرو", "شارب", "أليف", "منزل"]},
+                {w:"عصفور", t:["ريش", "يطير"], c:"حيوانات", h:["شجرة", "جناح", "تغريد", "صغير"]},
+                {w:"كرسي", t:["جلوس", "طاولة"], c:"منزل", h:["خشب", "أرجل", "قعدة", "ظهر"]},
+                {w:"قلم رصاص", t:["كتابة", "ممحاة"], c:"أدوات", h:["ورق", "رسم", "خط", "بري"]},
+                {w:"صابونة", t:["رغوة", "غسيل"], c:"منزل", h:["حمام", "ماء", "ريحة", "نظافة"]},
+                {w:"سرير", t:["نوم", "مخدة"], c:"منزل", h:["مرتبة", "غرفة", "راحة", "غطاء"]},
+                {w:"مفتاح", t:["قفل", "باب"], c:"أدوات", h:["حديد", "شقة", "فتح", "دوران"]},
+                {w:"تفاحة", t:["أحمر", "شجرة"], c:"فواكه", h:["فاكهة", "طعم", "عصير", "طبيعة"]},
+                {w:"حذاء رياضي", t:["مشي", "رجل"], c:"أدوات", h:["جري", "كوتشي", "قدم", "رباط"]},
+                {w:"مرآة", t:["وجه", "زجاج"], c:"منزل", h:["انعكاس", "شكل", "صورة", "نظر"]},
+                {w:"فرشاة أسنان", t:["معجون", "فم"], c:"منزل", h:["تنظيف", "صباح", "نظافة", "حماية"]},
+                {w:"كوب ماء", t:["عطش", "شرب"], c:"مشروبات", h:["ري", "زجاج", "شفاف", "سوائل"]},
+                {w:"كتاب", t:["صفحات", "قراءة"], c:"أدوات", h:["غلاف", "معلومات", "ثقافة", "سطور"]},
+                {w:"ليمون", t:["حامض", "عصير"], c:"فواكه", h:["أصفر", "نعناع", "فيتامين", "شجر"]},
+                {w:"موز", t:["قشر", "أصفر"], c:"فواكه", h:["قرد", "حلو", "طاقة", "فاكهة"]},
+                {w:"مظلة شاطئ", t:["بحر", "رمل"], c:"أدوات", h:["شمس", "كرسي", "شاطئ", "ظل"]},
+                {w:"حقيبة مدرسية", t:["كتب", "ظهر"], c:"أدوات", h:["شنطة", "دراسة", "أدوات", "طالب"]},
+                {w:"سجادة صلاة", t:["جامع", "قبلة"], c:"منزل", h:["فرض", "أرض", "مسجد", "مفروشة"]},
+                {w:"بطارية", t:["طاقة", "شحن"], c:"أجهزة", h:["جهاز", "ريموت", "قوة", "سالب"]},
+                {w:"مقص", t:["ورق", "قص"], c:"أدوات", h:["سلاحين", "قطع", "حديد", "خياطة"]},
+                {w:"منبه", t:["رنين", "صحوة"], c:"أجهزة", h:["نوم", "صباح", "جرس", "موعد"]},
+                {w:"فنجان قهوة", t:["بن", "صباح"], c:"مشروبات", h:["ركوة", "وش", "سادة", "مزاج"]},
+                {w:"دراجة", t:["بدال", "عجلتين"], c:"شارع ومواصلات", h:["عجلة", "سير", "طريق", "جرس"]},
+                {w:"عسل نحل", t:["نحلة", "حلو"], c:"أكلات شعبية", h:["شفاء", "خلية", "طبيعي", "غذاء"]},
+                {w:"كرة قدم", t:["ملعب", "هدف"], c:"أدوات", h:["لاعبين", "ماتش", "حارس", "تسديد"]},
+                {w:"سماعات أذن", t:["صوت", "أغاني"], c:"أجهزة", h:["سلك", "بلوتوث", "أذن", "استماع"]},
+                {w:"منديل ورق", t:["مسح", "علبة"], c:"منزل", h:["جيب", "عطس", "ورق", "تنظيف"]},
+                {w:"طاقية صوف", t:["برد", "رأس"], c:"أدوات", h:["شتاء", "تدفئة", "خيط", "لبس"]},
+                {w:"قفل حديد", t:["سلسلة", "أمان"], c:"أدوات", h:["مفتاح", "حماية", "باب", "معدن"]},
+                {w:"فانوس رمضان", t:["شمعة", "نور"], c:"منزل", h:["صيام", "زينة", "شارع", "أطفال"]},
+
+                // WORLD 2: (41-80) Medium - 45s - 3 Taboos
+                {w:"توك توك", t:["عجل", "سواق", "مهرجانات"], c:"شارع ومواصلات", h:["صغير", "شارع", "زحمة", "أجرة"]},
+                {w:"اللمبي", t:["محمد سعد", "كوميديا", "فيلم"], c:"أمثال شعبية", h:["ضحك", "شخصية", "سينما", "إيفيه"]},
+                {w:"كمسري", t:["تذكرة", "أتوبيس", "فلوس"], c:"شارع ومواصلات", h:["محطة", "ركاب", "تفتيش", "سفر"]},
+                {w:"بياع غزل بنات", t:["سكر", "وردي", "عصاية"], c:"شارع ومواصلات", h:["أطفال", "حلاوة", "حديقة", "خيط"]},
+                {w:"فرح بلدي", t:["طبلة", "فراشة", "معازيم"], c:"شارع ومواصلات", h:["عريس", "زفة", "موسيقى", "سهرة"]},
+                {w:"عربة فول", t:["طحينة", "ليمون", "قدرة"], c:"أكلات شعبية", h:["رصيف", "فطار", "مسمار", "زيت"]},
+                {w:"طشت غسيل", t:["زمان", "رغوة", "هدوم"], c:"منزل", h:["نحاس", "تنظيف", "مياه", "بيت"]},
+                {w:"كلاكس عربية", t:["صوت", "زحمة", "إشارة"], c:"شارع ومواصلات", h:["تنبيه", "سائق", "طريق", "إزعاج"]},
+                {w:"شاي خمسينة", t:["نعناع", "قهوة", "سكر زيادة"], c:"مشروبات", h:["كوباية", "قعدة", "مشروب", "بلدي"]},
+                {w:"طعمية محشية", t:["شطة", "فول", "سمسم"], c:"أكلات شعبية", h:["مقرمشة", "سندوتش", "مطعم", "فطار"]},
+                {w:"سيلفي عائلي", t:["كاميرا", "ابتسامة", "موبايل"], c:"أجهزة", h:["صورة", "تذكار", "شاشة", "لقطة"]},
+                {w:"جرامافون", t:["أسطوانة", "مزيكا", "زمان"], c:"أجهزة", h:["صوت", "بوق", "أغاني", "كلاسيك"]},
+                {w:"ميكروباص", t:["أجرة", "سواق", "موقف"], c:"شارع ومواصلات", h:["ركاب", "طريق", "خط", "كرسي"]},
+                {w:"وابور جاز", t:["نار", "زمان", "طبخ"], c:"منزل", h:["شعلة", "وقود", "أكل", "صوت"]},
+                {w:"سخان مياه", t:["دش", "حمام", "كهرباء"], c:"منزل", h:["ماء", "دافئ", "شتاء", "غسيل"]},
+                {w:"عوامة بحر", t:["سباحة", "صيف", "شاطئ"], c:"أدوات", h:["طفو", "ماء", "أمان", "هواء"]},
+                {w:"فشار", t:["ذرة", "سينما", "كراميل"], c:"أكلات شعبية", h:["حبات", "فرقعة", "فيلم", "سهرة"]},
+                {w:"ترمس العيد", t:["ملح", "كمون", "تسالي"], c:"أكلات شعبية", h:["أصفر", "نقع", "حبوب", "طعم"]},
+                {w:"خناقة على الركنة", t:["عربية", "شارع", "سايس"], c:"شارع ومواصلات", h:["مكان", "سيارة", "صوت", "خلاف"]},
+                {w:"حمام محشي", t:["رز", "فريك", "شوربة"], c:"أكلات شعبية", h:["طائر", "فرن", "عزومة", "أكلة"]},
+                {w:"ماتش ديربي", t:["أهلي", "زمالك", "كورة"], c:"أدوات", h:["قمة", "ملعب", "منافسة", "استاد"]},
+                {w:"راديو قديم", t:["موجة", "أم كلثوم", "صوت"], c:"أجهزة", h:["أثير", "مذياع", "محطة", "زمان"]},
+                {w:"شيشة قهوة", t:["معسل", "فحم", "نار"], c:"مشروبات", h:["دخان", "لي", "مبسم", "قعدة"]},
+                {w:"كنافة بالمانجو", t:["شربات", "صينية", "رمضان"], c:"أكلات شعبية", h:["فاكهة", "كريمة", "حلو", "طعم"]},
+                {w:"نبطشي الأفراح", t:["مايك", "تحية", "مسرح"], c:"شارع ومواصلات", h:["مغني", "كلام", "فرح", "سهرة"]},
+                {w:"سايس الجراج", t:["عربية", "مفتاح", "ركنة"], c:"شارع ومواصلات", h:["سيارة", "شارع", "منادي", "فلوس"]},
+                {w:"مكواة رجل", t:["بخار", "هدوم", "مغسلة"], c:"أدوات", h:["كي", "ثياب", "حرارة", "مهنة"]},
+                {w:"فطير مشلتت", t:["عسل", "جبنة قديمة", "سمنة"], c:"أكلات شعبية", h:["طبقات", "مورق", "فرن", "بلدي"]},
+                {w:"كرتونة رمضان", t:["زيت", "سكر", "توزيع"], c:"منزل", h:["سلع", "تضامن", "مساعدة", "صيام"]},
+                {w:"شبشب زنوبة", t:["بلاستيك", "بيت", "حمام"], c:"أدوات", h:["قدم", "أصبع", "لبس", "أرض"]},
+                {w:"عصير قصب", t:["ثلج", "عصارة", "أخضر"], c:"مشروبات", h:["عيدان", "حلو", "محل", "طازج"]},
+                {w:"طبق مخلل", t:["جزر", "لفت", "حامض"], c:"أكلات شعبية", h:["طعام", "ملح", "شطة", "فاتح شهية"]},
+                {w:"حلاق الصحة", t:["موس", "زمان", "شعر"], c:"أدوات", h:["جرح", "رأس", "قرية", "مهنة"]},
+                {w:"طاولة زهر", t:["نرد", "قواشيط", "قهوة"], c:"أدوات", h:["خشب", "لعب", "مكسب", "شيش بيش"]},
+                {w:"دومينو", t:["بلاطة", "تسعة", "قفل"], c:"أدوات", h:["نقاط", "لعب", "أبيض وأسود", "طاولة"]},
+                {w:"صينية بطاطس", t:["فرن", "طماطم", "لحمة"], c:"أكلات شعبية", h:["غداء", "خضار", "حلقة", "أكلة"]},
+                {w:"بسطرمة بالبيض", t:["ريحة", "فطار", "طاسة"], c:"أكلات شعبية", h:["لحم", "ثوم", "قلي", "صباح"]},
+                {w:"ليمون بالنعناع", t:["خلاط", "انتعاش", "صيف"], c:"مشروبات", h:["أخضر", "مثلج", "عصير", "طبيعي"]},
+                {w:"كشك سجائر", t:["رصيف", "جريدة", "بانك"], c:"شارع ومواصلات", h:["بضاعة", "محل", "بيع", "مشروب"]},
+                {w:"طابور العيش", t:["فرن", "رغيف", "زحمة"], c:"شارع ومواصلات", h:["انتظار", "خبز", "ساخن", "دقيق"]},
+
+                // WORLD 3: (81-120) Advanced - 35s - 4 Taboos
+                {w:"باب النجار مخلع", t:["مثل", "خشب", "مسمار", "إصلاح"], c:"أمثال شعبية", h:["صاحب مهنة", "إهمال", "بيت", "مقولة"]},
+                {w:"طباخ السم بيدوقه", t:["سم", "أكل", "مثل", "مطبخ"], c:"أمثال شعبية", h:["تذوق", "صانع", "ضرر", "حكمة"]},
+                {w:"حبل الكذب قصير", t:["صدق", "حقيقة", "خداع", "مثل"], c:"أمثال شعبية", h:["ظهور", "افتضاح", "قول", "نصيحة"]},
+                {w:"القرش الأبيض", t:["يوم أسود", "فلوس", "توفير", "مثل"], c:"أمثال شعبية", h:["ادخار", "مستقبل", "حاجة", "مال"]},
+                {w:"اللي اختشوا ماتوا", t:["حمام", "كسوف", "مثل", "حياء"], c:"أمثال شعبية", h:["خجل", "حريق", "واقعة", "قصة"]},
+                {w:"عصفور في اليد", t:["عشرة", "شجرة", "صيد", "طائر"], c:"أمثال شعبية", h:["قناعة", "ضمان", "أفضل", "مضمون"]},
+                {w:"ابن الوز عوام", t:["وراثة", "سباحة", "أب", "طائر"], c:"أمثال شعبية", h:["شبه", "جينات", "مهارة", "أصل"]},
+                {w:"طشت النداهة", t:["خرافة", "ترعة", "ليل", "صوت"], c:"أمثال شعبية", h:["نداء", "سحر", "غموض", "حكاية"]},
+                {w:"السقا", t:["قربة", "مية", "شارع", "مهنة زمان"], c:"أدوات", h:["توزيع", "شرب", "حمل", "ناس"]},
+                {w:"المسحراتي", t:["طبلة", "سحور", "رمضان", "اصحى"], c:"شارع ومواصلات", h:["نداء", "ليل", "صيام", "إيقاظ"]},
+                {w:"بياع العرقسوس", t:["صاجات", "إبريق", "مشروب", "حزام"], c:"مشروبات", h:["نحاس", "أسود", "عطش", "صباح"]},
+                {w:"المكوجي البلدي", t:["رجل", "بخار", "سخن", "حديد"], c:"أدوات", h:["ثياب", "فرد", "مهارة", "صنعة"]},
+                {w:"الغربال", t:["نخالة", "دقيق", "سبوع", "طحين"], c:"أدوات", h:["تنقية", "شبكة", "فصل", "مولود"]},
+                {w:"الساقية", t:["بقر", "مية", "غيط", "ترعة"], c:"أدوات", h:["دوران", "ري", "أرض", "زرع"]},
+                {w:"الشادوف", t:["نيل", "ري", "طين", "خشب"], c:"أدوات", h:["رفع", "ماء", "قديم", "فلاح"]},
+                {w:"المنجد البلدي", t:["قطن", "قوس", "مرتبة", "إبرة"], c:"أدوات", h:["تنجيد", "خياطة", "نوم", "صوف"]},
+                {w:"طاحونة الهواء", t:["دقيق", "رياح", "أجنحة", "طحن"], c:"أجهزة", h:["طاقة", "حبوب", "دوران", "قمح"]},
+                {w:"المركب الشراعي", t:["بحر", "قماش", "رياح", "دفة"], c:"شارع ومواصلات", h:["سفر", "موج", "صيد", "نيل"]},
+                {w:"الحداد البلدي", t:["كير", "مطرقة", "نار", "سندان"], c:"أدوات", h:["تشكيل", "حديد", "صهر", "ضرب"]},
+                {w:"الخزاف", t:["طين", "عجلة", "فخار", "فرن"], c:"أدوات", h:["صلصال", "أواني", "تشكيل", "يدوي"]},
+                {w:"حفلة أم كلثوم", t:["مسرح", "ست", "خميس", "منديل"], c:"أمثال شعبية", h:["طرب", "غناء", "جمهور", "أغنية"]},
+                {w:"فيلم الأرض", t:["محمود المليجي", "أرض", "فلاح", "عمدة"], c:"أمثال شعبية", h:["قرية", "زراعة", "كفاح", "شاهين"]},
+                {w:"مدرسة المشاغبين", t:["عادل إمام", "سعيد صالح", "مدرسة", "ضحك"], c:"أمثال شعبية", h:["طلاب", "فصل", "كوميديا", "ناظر"]},
+                {w:"خان الخليلي", t:["سياحة", "آثار", "قهوة الفيشاوي", "فضة"], c:"شارع ومواصلات", h:["سوق", "قاهرة", "تحف", "هدايا"]},
+                {w:"سور الأزبكية", t:["كتب قديمة", "قراءة", "وسط البلد", "ثقافة"], c:"أدوات", h:["مجلدات", "شراء", "أوراق", "معرفة"]},
+                {w:"برج القاهرة", t:["زهرة اللوتس", "جزيرة", "مطعم دوار", "ارتفاع"], c:"منزل", h:["سياحة", "إطلالة", "نيل", "مبنى"]},
+                {w:"قلعة صلاح الدين", t:["محمد علي", "جامع", "مقطم", "حصن"], c:"منزل", h:["أسوار", "حرب", "قاهرة", "دفاع"]},
+                {w:"طريق الكباش", t:["أقصر", "فراعنة", "تماثيل", "معبد"], c:"شارع ومواصلات", h:["أثر", "حجر", "ملوك", "موكب"]},
+                {w:"متحف الحضارة", t:["مومياوات", "ملوك", "فسطاط", "عرض"], c:"منزل", h:["آثار", "تاريخ", "فراعنة", "مبنى"]},
+                {w:"السد العالي", t:["أسوان", "فيضان", "كهرباء", "بحيرة ناصر"], c:"أجهزة", h:["مياه", "حجز", "طاقة", "توليد"]},
+                {w:"قناة السويس", t:["ملاحة", "سفن", "بحر أحمر", "تجارة"], c:"شارع ومواصلات", h:["ممر", "حاويات", "عبور", "بحر"]},
+                {w:"حجر رشيد", t:["شامبليون", "هيروغليفي", "فك الرموز", "فرنسا"], c:"أدوات", h:["لغات", "كتابة", "أثر", "نقش"]},
+                {w:"توت عنخ آمون", t:["ذهب", "مقبرة", "فرعون", "أقصر"], c:"أدوات", h:["ملك", "اكتشاف", "قناع", "كارتر"]},
+                {w:"أبو الهول", t:["رأس إنسان", "جسم أسد", "أهرامات", "أنف"], c:"أدوات", h:["تمثال", "حراسة", "جيزة", "فرعوني"]},
+                {w:"سوق الحميدية", t:["دمشق", "تراث", "سقف حديد", "بهارات"], c:"شارع ومواصلات", h:["شام", "تاريخ", "دكاكين", "تراث"]},
+                {w:"جامع الأزهر", t:["فاطميون", "دراسة", "منبر", "قاهرة"], c:"منزل", h:["مسجد", "شيوخ", "دين", "تاريخ"]},
+                {w:"البتراء بالأردن", t:["مدينة وردية", "صخر", "خزنة", "أنباط"], c:"شارع ومواصلات", h:["نحت", "جبال", "آثار", "صحراء"]},
+                {w:"سفينة تيتانيك", t:["جبل جليد", "غرق", "محيط", "ركاب"], c:"شارع ومواصلات", h:["باخرة", "كارثة", "بحر", "مأساة"]},
+                {w:"برج إيفل", t:["باريس", "حديد", "فرنسا", "سياحة"], c:"منزل", h:["ارتفاع", "أضواء", "أوروبا", "معدن"]},
+                {w:"سور الصين العظيم", t:["طول", "حجارة", "دفاع", "فضاء"], c:"منزل", h:["حماية", "حضارة", "آسيا", "جدار"]},
+
+                // WORLD 4: (121-160) Expert - 25s - 5 Taboos
+                {w:"الجاذبية الأرضية", t:["نيوتن", "تفاحة", "سقوط", "فيزياء", "أرض"], c:"علوم وفيزياء", h:["قوة", "سحب", "وزن", "حركة"]},
+                {w:"الثقب الأسود", t:["فضاء", "ضوء", "نجوم", "بلع", "كتلة"], c:"علم الفلك", h:["جاذبية خارقة", "كون", "انهيار", "غموض"]},
+                {w:"الذكاء الاصطناعي", t:["كمبيوتر", "خوارزمية", "روبوت", "تفكير", "بيانات"], c:"تكنولوجيا", h:["تعلم", "آلة", "برمجة", "تقنية"]},
+                {w:"مثلث برمودا", t:["محيط", "اختفاء", "سفن", "طائرات", "لغز"], c:"علم الفلك", h:["أطلسي", "ضياع", "حوادث", "غموض"]},
+                {w:"طبقة الأوزون", t:["شمس", "أشعة ضارة", "غلاف جوي", "حماية", "تلوث"], c:"علوم وفيزياء", h:["غاز", "أكسجين", "درع", "أرض"]},
+                {w:"الاحتباس الحراري", t:["حرارة", "جليد", "كربون", "ذوبان", "مناخ"], c:"علوم وفيزياء", h:["تغير", "غازات", "دفء", "كوكب"]},
+                {w:"المجهر الإلكتروني", t:["تكبير", "بكتيريا", "خلايا", "مختبر", "عدسة"], c:"أجهزة", h:["رؤية", "دقيق", "فحص", "علم"]},
+                {w:"الحمض النووي DNA", t:["جينات", "وراثة", "حلزوني", "شفرة", "خلية"], c:"علوم وفيزياء", h:["سلسلة", "صفات", "بشر", "عنصر"]},
+                {w:"محطة الفضاء الدولية", t:["رواد", "انعدام وزن", "مدار", "صاروخ", "أبحاث"], c:"علم الفلك", h:["مختبر", "دوران", "سماء", "تجارب"]},
+                {w:"الألياف البصرية", t:["إنترنت", "ضوء", "سرعة", "كيبل", "زجاج"], c:"تكنولوجيا", h:["نقل", "إشارات", "بيانات", "شبكة"]},
+                {w:"الانشطار النووي", t:["ذرة", "يورانيوم", "مفاعل", "طاقة", "قنبلة"], c:"علوم وفيزياء", h:["انقسام", "نواة", "حرارة هائلة", "تفاعل"]},
+                {w:"الصفائح التكتونية", t:["زلزال", "قشرة الأرض", "براكين", "حركة", "قارات"], c:"علوم وفيزياء", h:["أرض", "طبقات", "اصطدام", "يابسة"]},
+                {w:"الجدول الدوري", t:["عناصر", "كيمياء", "مندليف", "فلزات", "ذرات"], c:"علوم وفيزياء", h:["ترتيب", "رموز", "غازات", "مادة"]},
+                {w:"الموجات الكهرومغناطيسية", t:["تردد", "راديو", "إشعاع", "طيف", "ضوء"], c:"علوم وفيزياء", h:["انتشار", "أثير", "طاقة", "اهتزاز"]},
+                {w:"البكتيريا النافعة", t:["أمعاء", "جراثيم", "زبادي", "هضم", "ميكروب"], c:"علوم وفيزياء", h:["مفيدة", "كائنات", "صحة", "مناعة"]},
+                {w:"النانو تكنولوجي", t:["صغير", "مقياس", "ذرات", "تطبيقات", "تكنولوجيا"], c:"تكنولوجيا", h:["أبعاد دقيقة", "مادة", "هندسة", "مستقبل"]},
+                {w:"الموصلات الفائقة", t:["حرارة", "مقاومة صفر", "مغناطيس", "كهرباء", "قطار"], c:"علوم وفيزياء", h:["توصيل", "برودة", "طاقة", "انعدام"]},
+                {w:"الانفجار العظيم", t:["كون", "نشأة", "توسع", "مجرات", "بداية"], c:"علم الفلك", h:["تطور", "أصل", "زمن", "فضاء"]},
+                {w:"تلسكوب جيمس ويب", t:["صور", "فضاء عميق", "مرايا", "أشعة", "نجوم"], c:"علم الفلك", h:["رصد", "كون", "عدسات", "ناسا"]},
+                {w:"السبات الشتوي", t:["دب", "نوم", "برد", "طاقة", "حيوانات"], c:"حيوانات", h:["موسم", "اختباء", "سكون", "شتاء"]},
+                {w:"التمثيل الضوئي", t:["نبات", "شمس", "أكسجين", "ورقة", "كلوروفيل"], c:"علوم وفيزياء", h:["غذاء", "صنع", "أخضر", "طبيعة"]},
+                {w:"الضغط الجوي", t:["باروميتر", "طقس", "ارتفاع", "هواء", "نيوتن"], c:"علوم وفيزياء", h:["وزن", "غلاف", "مقياس", "رياح"]},
+                {w:"شفق قطبي", t:["ألوان", "سماء", "قطب شمالي", "مغناطيس", "ليل"], c:"علم الفلك", h:["أورورا", "نور", "ظاهرة", "جمال"]},
+                {w:"حزام الكويكبات", t:["مريخ", "مشتري", "صخور", "فضاء", "مدار"], c:"علم الفلك", h:["أجرام", "نظام شمسي", "دوران", "كتل"]},
+                {w:"خندق ماريانا", t:["عمق", "محيط", "ظلام", "ضغط", "غواصة"], c:"علوم وفيزياء", h:["أعمق نقطة", "قاع", "مياه", "استكشاف"]},
+                {w:"البركان الثائر", t:["حمم", "ماجما", "رماد", "فوهة", "انفجار"], c:"علوم وفيزياء", h:["صخور", "غازات", "حرارة", "خروج"]},
+                {w:"التسونامي", t:["موجة", "زلزال", "بحر", "شاطئ", "دمار"], c:"علوم وفيزياء", h:["مياه عملاقة", "طوفان", "كارثة", "سواحل"]},
+                {w:"الأعاصير القمعية", t:["رياح", "دوران", "عاصفة", "دمار", "سرعة"], c:"علوم وفيزياء", h:["قمع", "دوامة", "جو", "هبوب"]},
+                {w:"غابات الأمازون", t:["أشجار", "رئة الأرض", "برازيل", "مطر", "حيوانات"], c:"علوم وفيزياء", h:["أدغال", "نباتات", "تنوع", "طبيعة"]},
+                {w:"صحراء الربع الخالي", t:["رمال", "حرارة", "كثبان", "جزيرة عربية", "جفاف"], c:"شارع ومواصلات", h:["مساحة", "صحراء", "عطش", "بدو"]},
+                {w:"شلالات نياجرا", t:["مياه", "سقوط", "كندا", "أمريكا", "قوة"], c:"علوم وفيزياء", h:["تدفق", "نهر", "انحدار", "ضباب"]},
+                {w:"قمة إفرست", t:["جبل", "هيمالايا", "ارتفاع", "ثلج", "تسلق"], c:"شارع ومواصلات", h:["أعلى قمة", "صخور", "مغامرة", "أكسجين"]},
+                {w:"طريق الحرير", t:["تجارة", "صين", "قوافل", "توابل", "تاريخ"], c:"شارع ومواصلات", h:["مسار", "بضائع", "سفر", "قديم"]},
+                {w:"مكتبة الإسكندرية", t:["حريق", "مخطوطات", "بطالمة", "فلسفة", "علم"], c:"منزل", h:["كتب", "علماء", "صرح", "معرفة"]},
+                {w:"حدائق بابل", t:["عراق", "عجائب", "نبوخذ نصر", "شجر", "بناء"], c:"منزل", h:["معلقة", "زهور", "حضارة", "جمال"]},
+                {w:"منارة الإسكندرية", t:["بحر", "إرشاد سفن", "زلزال", "نور", "عجائب"], c:"منزل", h:["برج", "شعلة", "ميناء", "تاريخ"]},
+                {w:"تمثال الحرية", t:["نيويورك", "شعلة", "فرنسا", "استقلال", "جزيرة"], c:"أدوات", h:["نصب", "نحاس", "رمز", "أمريكا"]},
+                {w:"ساعة بيج بن", t:["لندن", "برج", "بريطانيا", "دقات", "وقت"], c:"أجهزة", h:["عقارب", "أجراس", "تاريخ", "معلم"]},
+                {w:"مدرج الكولوسيوم", t:["روما", "إيطاليا", "حلبة", "مصارعة", "تاريخ"], c:"منزل", h:["قتال", "مسرح", "أقواس", "حجارة"]},
+                {w:"تاج محل", t:["هند", "رخام أبيض", "حب", "قبر", "شاه جهان"], c:"منزل", h:["قصر", "وفاء", "عمارة", "إسلامي"]},
+
+                // WORLD 5: (161-200) Legendary - 18s - 5 Taboos
+                {w:"الديناصورات المنقرضة", t:["نيزك", "عظام", "متحجرات", "تي ريكس", "ملايين السنين"], c:"حيوانات", h:["زواحف عملاقة", "تاريخ", "موت", "أرض"]},
+                {w:"السفر عبر الزمن", t:["ماضي", "مستقبل", "آلة", "نسبية", "أينشتاين"], c:"تكنولوجيا", h:["انتقال", "أزمنة", "فيزياء", "خيال"]},
+                {w:"المجرات الحلزونية", t:["درب التبانة", "نجوم", "مركز", "أذرع", "كون"], c:"علم الفلك", h:["دوران", "سدم", "فلك", "تجمعات"]},
+                {w:"طائر الفينيق", t:["رماد", "ولادة جديدة", "أسطورة", "نار", "طائر خيالي"], c:"حيوانات", h:["عنقاء", "خلود", "حكايات", "رمز"]},
+                {w:"التخاطر عن بعد", t:["عقل", "تفكير", "أفكار", "إرسال", "حاسة سادسة"], c:"تكنولوجيا", h:["تواصل ذهني", "إدراك", "إشارات", "دماغ"]},
+                {w:"أطلانتس الغارقة", t:["قارة", "محيط", "حضارة مفقودة", "أفلاطون", "غرق"], c:"علم الفلك", h:["جزيرة", "مياه", "أسطورة", "متقدمة"]},
+                {w:"مفارقة الجد", t:["تناقض", "زمن", "ماضي", "أينشتاين", "نسبية"], c:"علوم وفيزياء", h:["منطق", "سفر", "سببية", "معضلة"]},
+                {w:"تأثير الفراشة", t:["فوضى", "أجنحة", "إعصار", "سبب ونتيجة", "تغيير"], c:"علوم وفيزياء", h:["أثر صغير", "نتيجة كبرى", "ديناميكا", "نظام"]},
+                {w:"قطة شرودنجر", t:["ميكانيكا كم", "حية وميتة", "صندوق", "احتمالات", "فيزياء"], c:"علوم وفيزياء", h:["تراكب", "مراقبة", "تجربة ذهنية", "ذرة"]},
+                {w:"الحوسبة الكمومية", t:["كيوبت", "سوبر كمبيوتر", "تراكب", "تشفير", "سرعة خارقة"], c:"تكنولوجيا", h:["معالجة", "كم", "عمليات", "حاسوب"]},
+                {w:"المادة المظلمة", t:["غير مرئية", "كتلة", "جاذبية", "كون", "لغز"], c:"علم الفلك", h:["مجهول", "فضاء", "تأثير", "مجرات"]},
+                {w:"الطاقة المظلمة", t:["تسارع", "تمدد الكون", "فضاء", "قوة طاردة", "نسبة مئوية"], c:"علم الفلك", h:["دفع", "تباعد", "لغز كوني", "طبيعة"]},
+                {w:"المصفوفة Matrix", t:["وهم", "واقع", "محاكاة", "كمبيوتر", "حبة زرقاء"], c:"تكنولوجيا", h:["عالم رقمي", "إدراك", "تحكم", "برنامج"]},
+                {w:"الوعي الذاتي للآلة", t:["روبوت", "مشاعر", "تفكير مستقل", "ثورة", "خيال علمي"], c:"تكنولوجيا", h:["إدراك", "استقلال", "مستقبل", "عقل"]},
+                {w:"مستعمرة المريخ", t:["كوكب أحمر", "سفر", "إيلون ماسك", "أكسجين", "رواد"], c:"علم الفلك", h:["استيطان", "مركبة", "حياة", "فضاء"]},
+                {w:"كوكب الزهرة الجهنمي", t:["حمض كبريتي", "حرارة قاتلة", "غلاف كثيف", "بركان", "كوكب"], c:"علم الفلك", h:["غلاف سام", "ضغط مرعب", "مجموعة شمسية", "صخور"]},
+                {w:"حلقات زحل", t:["كوكب", "جليد", "صخور", "دوران", "جاذبية"], c:"علم الفلك", h:["أحزمة", "مدار", "فلك", "تلسكوب"]},
+                {w:"سديم عين القط", t:["غاز", "انفجار نجمي", "ألوان", "موت نجم", "تلسكوب"], c:"علم الفلك", h:["سحابة", "جمال كوني", "فضاء", "ضوء"]},
+                {w:"النجم النيوتروني", t:["كثافة مرعبة", "دوران", "مغناطيس", "إشعاع", "انهيار"], c:"علم الفلك", h:["نبض", "كتلة هائلة", "أجرام", "فلك"]},
+                {w:"العدسة التثاقلية", t:["انحناء الضوء", "كتلة عملاقة", "نسبية", "مجرات", "تشويه"], c:"علم الفلك", h:["جاذبية", "صورة", "فضاء عميق", "رصد"]},
+                {w:"الفلسفة الترانسكندنتالية", t:["كانط", "عقل", "حقيقة مجردة", "معرفة", "طبيعة"], c:"أمثال شعبية", h:["ما وراء التجربة", "تأمل", "مفاهيم", "فكر"]},
+                {w:"مبدأ الشك الديكارتي", t:["أنا أفكر", "أنا موجود", "حقيقة", "تفكير", "فلسفة"], c:"أمثال شعبية", h:["يقين", "تساؤل", "منهج", "عقلانية"]},
+                {w:"المدينة الفاضلة", t:["أفلاطون", "مجتمع مثالي", "عدالة", "حلم", "خيال"], c:"أمثال شعبية", h:["جمهورية", "كمال", "حكم الفلاسفة", "تنظيم"]},
+                {w:"النسبية العامة", t:["أينشتاين", "زمكان", "انحناء", "سرعة الضوء", "جاذبية"], c:"علوم وفيزياء", h:["نسيج الكون", "فيزياء", "معادلات", "كتلة"]},
+                {w:"أوتار الكون الفائقة", t:["نظرية الأوتار", "أبعاد إضافية", "اهتزاز", "جسيمات", "كل شيء"], c:"علوم وفيزياء", h:["خيوط متناهية الصغر", "توحيد القوى", "فيزياء", "كون"]},
+                {w:"المستعر الأعظم سديم", t:["سوبر نوفا", "انفجار نجم", "نور هائل", "حديد", "فضاء"], c:"علم الفلك", h:["نهاية نجم", "طاقة جبارة", "بريق", "موت"]},
+                {w:"الانعكاس الزمني التناظري", t:["فيزياء جسيمات", "تناظر CPT", "مادة مضادة", "سهم الزمن", "انتروبيا"], c:"علوم وفيزياء", h:["عكس الزمن", "جسيمات دقيقة", "قوانين الطبيعة", "تناسق"]},
+                {w:"انتروبيا القانون الثاني", t:["فوضى حرارية", "طاقة", "تدهور", "ديناميكا", "كون"], c:"علوم وفيزياء", h:["عشوائية", "سريان الطاقة", "نظام", "كون"]},
+                {w:"انقلاب الأقطاب المغناطيسية", t:["أرض", "شمال وجنوب", "انقلاب", "حقل", "جيولوجيا"], c:"علوم وفيزياء", h:["مغناطيسية كوكبية", "تبديل", "حماية", "بوصلة"]},
+                {w:"حالة البلازما الرابعة", t:["غاز متأين", "حرارة خارقة", "برق", "شمس", "إلكترونات"], c:"علوم وفيزياء", h:["طاقة متأينة", "فيزياء", "نجوم", "شحنات"]},
+                {w:"مصادم الهادرونات LHC", t:["سيرن", "تسريع جسيمات", "بوزون هيجز", "نفق سويسرا", "فيزياء"], c:"علوم وفيزياء", h:["تصادم ذرات", "مختبر عملاق", "كشف أسرار", "طاقة"]},
+                {w:"بوزون هيجز جسيم الكتلة", t:["سيرن", "كتلة الجسيمات", "حقل هيجز", "فيزياء", "ذرة"], c:"علوم وفيزياء", h:["جسيم أولي", "أصل الكتلة", "فيزياء الكم", "اكتشاف"]},
+                {w:"الاندماج النووي الصناعي", t:["شمس صناعية", "طاقة نظيفة", "توكاماك", "هيدروجين", "حرارة"], c:"علوم وفيزياء", h:["اندماج ذرات", "طاقة بلا حدود", "مفاعل", "أمان"]},
+                {w:"جسيمات النيوترينو الشبحية", t:["اختراق المادة", "كتلة شبه صفر", "تفاعلات ضعيفة", "شمس", "كواشف"], c:"علوم وفيزياء", h:["جسيمات عابرة", "فيزياء الفضاء", "أشعة", "سرعة"]},
+                {w:"الاستنساخ البيولوجي", t:["نعجة دولي", "حمض نووي", "خلية", "نسخة مطابقة", "أخلاقيات"], c:"علوم وفيزياء", h:["تطابق جيني", "مختبر", "أبحاث حيوية", "تكاثر"]},
+                {w:"طباعة الأعضاء 3D", t:["قلب صناعي", "خلايا حية", "أنسجة", "طب", "مستقبل"], c:"تكنولوجيا", h:["زراعة", "حبر حيوي", "علاج", "هندسة أنسجة"]},
+                {w:"المصعد الفضائي", t:["كيبل كربون", "محطة مدارية", "صعود بدون صاروخ", "فضاء", "هندسة"], c:"تكنولوجيا", h:["صعود مداري", "أنابيب نانو", "وسيلة نقل", "مستقبل"]},
+                {w:"مقص كريسبر الجيني", t:["علاج أمراض", "تعديل DNA", "وراثة", "جينات", "بكتيريا"], c:"علوم وفيزياء", h:["قص ولصق جيني", "طب المستقبل", "شفاء", "تعديل"]},
+                {w:"الخلود الرقمي", t:["دماغ", "سيرفر", "تحميل العقل", "ذكاء اصطناعي", "وعي"], c:"تكنولوجيا", h:["نقل الذكريات", "سحابة", "استمرار الوعي", "تكنولوجيا"]},
+                {w:"عرش أسطورة المعلمين", t:["المركز الأول", "تاج الشرف", "200 مرحلة", "ختم اللعبة", "المعلم الأعظم"], c:"أمثال شعبية", h:["فوز ساحق", "عبقرية", "أسطورة", "معلم"]}
+              ];
+
+              const WORLDS_CONFIG = {
+                1: { title: "عالم 1: حارة المبتدئين", time: 60, taboos: 2, range: [1, 40], desc: "الوقت: 60ث • كلمتان ممنوعتان فقط" },
+                2: { title: "عالم 2: المشاهير والميمز", time: 45, taboos: 3, range: [41, 80], desc: "الوقت: 45ث • 3 كلمات ممنوعة" },
+                3: { title: "عالم 3: سوق الحِرّيفة", time: 35, taboos: 4, range: [81, 120], desc: "الوقت: 35ث • 4 كلمات ممنوعة" },
+                4: { title: "عالم 4: برج الخبراء", time: 25, taboos: 5, range: [121, 160], desc: "الوقت: 25ث • 5 كلمات ممنوعة" },
+                5: { title: "عالم 5: عرش الأساطير", time: 18, taboos: 5, range: [161, 200], desc: "الوقت: 18ث • 5 كلمات ممنوعة حاسمة 🔥" }
               };
 
-              window.onNativeModelReady = function() {
-                window.game.onModelReady();
-              };
+              class SuperAIGameEngine {
+                constructor() {
+                  this.currentStageNum = 1;
+                  this.selectedWorld = 1;
+                  this.timer = 60;
+                  this.timerInterval = null;
+                  this.busts = 0;
+                  this.recognition = null;
+                  this.isPlaying = false;
+                  this.isVoiceActive = false;
+                  this.userWantsVoice = false; // تسجيل يدوي فقط
+                  this.isSuccessApproved = false;
+                  this.currentScreen = 'screenHome';
+                  this.detectedCluesSet = new Set();
+                  this.detectedDomainSet = new Set();
+                  this.accumulatedTranscript = '';
+                  this.sessionFinalTranscript = '';
+                  this.accumulatedWordsCount = 0;
+                  this.hasPrimedMic = false;
 
-              window.onNativeSpeechResult = function(text) {
-                window.game.onSpeech(text);
-              };
+                  this.loadProgress();
+                  this.initSoundState();
+                  this.primeMicrophoneHardware();
+                  this.setupHardwareBackButton();
+                  this.renderMap();
+                  this.updateHeaderUI();
+                  this.checkFirstInstallAndDailyReward();
+                }
+
+                loadProgress() {
+                  const saved = localStorage.getItem('qool_map_prog_v3');
+                  if (saved) {
+                    try { this.progress = JSON.parse(saved); }
+                    catch(e) { this.progress = null; }
+                  }
+                  if (!this.progress) {
+                    this.progress = {
+                      maxUnlocked: 1,
+                      stars: {},
+                      starsBalance: 1000,
+                      lastDailyDate: "",
+                      isFirstInstall: true,
+                      soundEnabled: true,
+                      revealedCluesMap: {},
+                      completedStages: {}
+                    };
+                    this.isFreshInstall = true;
+                    this.saveProgress();
+                  } else {
+                    if (typeof this.progress.starsBalance !== 'number') this.progress.starsBalance = 1000;
+                    if (typeof this.progress.soundEnabled !== 'boolean') this.progress.soundEnabled = true;
+                    if (!this.progress.revealedCluesMap) this.progress.revealedCluesMap = {};
+                    if (!this.progress.completedStages) this.progress.completedStages = {};
+                  }
+                }
+
+                saveProgress() {
+                  localStorage.setItem('qool_map_prog_v3', JSON.stringify(this.progress));
+                  this.updateHeaderUI();
+                }
+
+                initSoundState() {
+                  soundFx.enabled = this.progress.soundEnabled;
+                  this.updateSoundButtonUI();
+                }
+
+                toggleSound() {
+                  this.progress.soundEnabled = !this.progress.soundEnabled;
+                  soundFx.enabled = this.progress.soundEnabled;
+                  this.saveProgress();
+                  this.updateSoundButtonUI();
+                  if (soundFx.enabled) soundFx.playClick();
+                }
+
+                updateSoundButtonUI() {
+                  const icon = document.getElementById('soundIcon');
+                  if (icon) {
+                    icon.className = this.progress.soundEnabled
+                      ? 'fa-solid fa-volume-high text-emerald-400'
+                      : 'fa-solid fa-volume-xmark text-red-400';
+                  }
+                }
+
+                primeMicrophoneHardware() {
+                  if (this.hasPrimedMic) return;
+                  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({
+                      audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        channelCount: 1
+                      }
+                    }).then((stream) => {
+                      this.hasPrimedMic = true;
+                      stream.getTracks().forEach(track => track.stop()); // تحرير المايك فورا وعدم تركه يسجل
+                    }).catch(e => {
+                      console.warn("Hardware mic prime notice:", e);
+                    });
+                  }
+                }
+
+                checkFirstInstallAndDailyReward() {
+                  if (this.isFreshInstall) {
+                    setTimeout(() => {
+                      document.getElementById('modalWelcomeBonus').classList.remove('hidden');
+                      soundFx.playReward();
+                      try { confetti({ particleCount: 140, spread: 90, origin: { y: 0.5 } }); } catch(e) {}
+                      this.speak("أهلاً بك يا معلّم! حصلت على 1000 نجمة هدية تثبيت اللعبة!");
+                    }, 400);
+                  } else {
+                    this.checkDailyReward();
+                  }
+                }
+
+                closeWelcomeModal() {
+                  soundFx.playClick();
+                  document.getElementById('modalWelcomeBonus').classList.add('hidden');
+                  this.checkDailyReward();
+                }
+
+                checkDailyReward() {
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  if (this.progress.lastDailyDate !== todayStr) {
+                    this.progress.starsBalance += 300;
+                    this.progress.lastDailyDate = todayStr;
+                    this.saveProgress();
+                    setTimeout(() => {
+                      document.getElementById('modalDailyReward').classList.remove('hidden');
+                      soundFx.playReward();
+                      try { confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } }); } catch(e) {}
+                      this.speak("مرحباً بك مجدداً يا معلّم! تمت إضافة 300 نجمة مكافأة يومية لحسابك!");
+                    }, 500);
+                  }
+                }
+
+                closeDailyRewardModal() {
+                  soundFx.playClick();
+                  document.getElementById('modalDailyReward').classList.add('hidden');
+                }
+
+                updateHeaderUI() {
+                  document.getElementById('starsBalanceDisplay').innerText = this.progress.starsBalance;
+                  document.getElementById('currentLevelNav').innerText = this.progress.maxUnlocked;
+                  document.getElementById('homeResumeLvl').innerText = this.progress.maxUnlocked;
+                }
+
+                buyHint() {
+                  soundFx.playClick();
+                  if (!this.activeStage) return;
+
+                  const lvlKey = String(this.currentStageNum);
+                  if (!this.progress.revealedCluesMap[lvlKey]) {
+                    this.progress.revealedCluesMap[lvlKey] = [];
+                  }
+
+                  const alreadyRevealed = this.progress.revealedCluesMap[lvlKey];
+                  const unrevealed = this.activeStage.h.filter(h => !alreadyRevealed.includes(h));
+
+                  if (unrevealed.length === 0) {
+                    alert("💡 جميع الكلمات الدلالية لهذه المرحلة مفتوحة لديك مسبقاً!");
+                    return;
+                  }
+
+                  if (this.progress.starsBalance < 30) {
+                    soundFx.playTabooAlarm();
+                    alert("❌ رصيد النجوم غير كافٍ! تحتاج 30 نجمة على الأقل.");
+                    return;
+                  }
+
+                  this.progress.starsBalance -= 30;
+                  const newHint = unrevealed[0];
+                  alreadyRevealed.push(newHint);
+                  this.saveProgress();
+                  soundFx.playHintReveal();
+
+                  this.detectedCluesSet.add(newHint);
+                  this.renderRevealedHintsUI();
+                  this.renderDetectedCluesUI();
+                  this.updateConfidence(this.accumulatedWordsCount || 0);
+
+                  this.speak(`تم كشف دلالة: ${newHint}! اذكرها في شرحك!`);
+                }
+
+                renderRevealedHintsUI() {
+                  const lvlKey = String(this.currentStageNum);
+                  const list = this.progress.revealedCluesMap[lvlKey] || [];
+                  const banner = document.getElementById('revealedHintBanner');
+                  const container = document.getElementById('revealedHintsContainer');
+                  const btnLabel = document.getElementById('hintBtnLabel');
+
+                  if (list.length > 0) {
+                    banner.classList.remove('hidden');
+                    container.innerHTML = '';
+                    list.forEach(clue => {
+                      const tag = document.createElement('span');
+                      tag.className = 'bg-amber-200 text-amber-950 px-2 py-0.5 rounded-md border border-amber-400 flex items-center space-x-1 space-x-reverse';
+                      tag.innerHTML = `<span>💡</span><span>${clue}</span>`;
+                      container.appendChild(tag);
+                    });
+                  } else {
+                    banner.classList.add('hidden');
+                    container.innerHTML = '';
+                  }
+
+                  const unrevealedCount = this.activeStage.h.filter(h => !list.includes(h)).length;
+                  if (unrevealedCount === 0) {
+                    btnLabel.innerText = "الدلالات مكتملة ✓";
+                  } else {
+                    btnLabel.innerText = `كشف دلالة (-30 ⭐)`;
+                  }
+                }
+
+                renderDetectedCluesUI() {
+                  const cluesBox = document.getElementById('aiDetectedClues');
+                  if (!cluesBox) return;
+                  cluesBox.innerHTML = '';
+                  this.detectedCluesSet.forEach(clue => {
+                    const tag = document.createElement('span');
+                    tag.className = 'bg-emerald-500/20 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md border border-emerald-400/40 flex items-center space-x-1 space-x-reverse animate-pulse';
+                    tag.innerHTML = `<span>✓</span><span>${clue}</span>`;
+                    cluesBox.appendChild(tag);
+                  });
+                }
+
+                updateConfidence(wordsCount = 0) {
+                  if (!this.activeStage) return;
+                  const totalClues = Math.max(1, this.activeStage.h.length);
+                  
+                  const directCluePoints = this.detectedCluesSet.size * 40;
+                  const proportionalCluePoints = Math.round((this.detectedCluesSet.size / totalClues) * 80);
+                  const effectiveCluePoints = Math.max(directCluePoints, proportionalCluePoints);
+
+                  const domainPoints = Math.min(25, this.detectedDomainSet.size * 10);
+                  const fluencyPoints = Math.min(20, Math.floor(wordsCount * 3));
+
+                  let totalConfidence = Math.min(100, Math.round(effectiveCluePoints + domainPoints + fluencyPoints));
+
+                  if (this.detectedCluesSet.size >= totalClues || this.detectedCluesSet.size >= 2) {
+                    totalConfidence = Math.max(totalConfidence, 85);
+                  }
+
+                  const pctEl = document.getElementById('aiConfidencePct');
+                  const barEl = document.getElementById('aiConfidenceBar');
+                  const nextBtn = document.getElementById('btnNextStage');
+                  const nextLabel = document.getElementById('btnNextLabel');
+
+                  if (pctEl) pctEl.innerText = `${totalConfidence}%`;
+                  if (barEl) barEl.style.width = `${totalConfidence}%`;
+
+                  if (totalConfidence >= 75) {
+                    this.triggerAutoSuccess();
+                  } else {
+                    if (nextLabel) nextLabel.innerText = `اقتناع الذكاء: ${totalConfidence}% (واصل الشرح)`;
+                    if (nextBtn) {
+                      nextBtn.disabled = true;
+                      nextBtn.className = "btn-3d py-3.5 bg-slate-800 text-yellow-300 rounded-2xl border-b-[4px] border-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-not-allowed opacity-80 transition-all duration-300";
+                    }
+                  }
+                }
+
+                setupHardwareBackButton() {
+                  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                    window.Capacitor.Plugins.App.addListener('backButton', () => {
+                      this.handleHardwareBack();
+                    });
+                  }
+                  document.addEventListener('backbutton', (e) => {
+                    e.preventDefault();
+                    this.handleHardwareBack();
+                  }, false);
+                  window.history.pushState({ page: 'home' }, '');
+                  window.addEventListener('popstate', () => {
+                    this.handleHardwareBack();
+                    window.history.pushState({ page: this.currentScreen }, '');
+                  });
+                }
+
+                handleHardwareBack() {
+                  const modals = ['modalWelcomeBonus', 'modalDailyReward'];
+                  for (let m of modals) {
+                    const el = document.getElementById(m);
+                    if (el && !el.classList.contains('hidden')) {
+                      el.classList.add('hidden');
+                      return;
+                    }
+                  }
+                  const exitModal = document.getElementById('modalExitConfirm');
+                  if (exitModal && !exitModal.classList.contains('hidden')) {
+                    this.closeExitModal();
+                    return;
+                  }
+                  if (this.currentScreen === 'screenPlay' || this.currentScreen === 'screenWin') {
+                    this.abandonStage();
+                  } else if (this.currentScreen === 'screenMap') {
+                    this.showHome();
+                  } else if (this.currentScreen === 'screenHome') {
+                    this.showExitModal();
+                  }
+                }
+
+                showExitModal() {
+                  soundFx.playClick();
+                  document.getElementById('modalExitConfirm').classList.remove('hidden');
+                }
+
+                closeExitModal() {
+                  soundFx.playClick();
+                  document.getElementById('modalExitConfirm').classList.add('hidden');
+                }
+
+                confirmExit() {
+                  soundFx.playClick();
+                  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                    window.Capacitor.Plugins.App.exitApp();
+                  } else if (navigator.app && navigator.app.exitApp) {
+                    navigator.app.exitApp();
+                  } else {
+                    window.close();
+                  }
+                }
+
+                createRecognitionInstance() {
+                  const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+                  if (!Speech) return;
+
+                  const rec = new Speech();
+                  rec.continuous = true;
+                  rec.interimResults = true;
+                  rec.maxAlternatives = 3;
+                  rec.lang = 'ar-EG';
+
+                  rec.onstart = () => {
+                    this.isVoiceActive = true;
+                    this.updateMicUI(true);
+                  };
+
+                  rec.onaudiostart = () => {
+                    this.updateMicUI(true);
+                  };
+
+                  rec.onspeechstart = () => {
+                    const pill = document.getElementById('aiStatusPill');
+                    if (pill) {
+                      pill.innerText = "يحلل الكلمات المنطوقة فوراً... 🧠";
+                      pill.className = "text-cyan-300 font-mono text-[10px]";
+                    }
+                  };
+
+                  rec.onresult = (ev) => {
+                    if (!this.isPlaying || this.isSuccessApproved || !this.userWantsVoice) return;
+
+                    let interimChunk = '';
+                    let finalChunk = '';
+                    let altWords = [];
+
+                    for (let i = ev.resultIndex; i < ev.results.length; ++i) {
+                      const res = ev.results[i];
+                      if (res.isFinal) {
+                        finalChunk += res[0].transcript + ' ';
+                      } else {
+                        interimChunk += res[0].transcript + ' ';
+                      }
+
+                      for (let a = 1; a < res.length; a++) {
+                        if (res[a] && res[a].transcript) {
+                          altWords.push(res[a].transcript);
+                        }
+                      }
+                    }
+
+                    if (finalChunk) {
+                      this.sessionFinalTranscript = (this.sessionFinalTranscript + ' ' + finalChunk).trim();
+                    }
+
+                    const currentLiveSpeech = (this.sessionFinalTranscript + ' ' + interimChunk).trim();
+                    this.processRealtimeSpeech(currentLiveSpeech, altWords);
+                  };
+
+                  rec.onerror = (e) => {
+                    console.warn("Speech error notice:", e.error);
+                    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+                      this.userWantsVoice = false;
+                      this.isVoiceActive = false;
+                      this.updateMicUI(false);
+                      const pill = document.getElementById('aiStatusPill');
+                      if (pill) pill.innerText = "صلاحية المايك مرفوضة (استخدم الكيبورد)";
+                      return;
+                    }
+                    if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice) {
+                      setTimeout(() => {
+                        if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice && !this.isVoiceActive) {
+                          this.safeStartVoice();
+                        }
+                      }, 150);
+                    }
+                  };
+
+                  rec.onend = () => {
+                    this.isVoiceActive = false;
+                    // يعيد الاتصال فقط إذا كان المستخدم قد ضغط زر المايك وما زال يريد التحدث
+                    if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice) {
+                      setTimeout(() => {
+                        if (this.isPlaying && !this.isSuccessApproved && this.userWantsVoice && !this.isVoiceActive) {
+                          this.safeStartVoice();
+                        }
+                      }, 100);
+                    } else {
+                      this.updateMicUI(false);
+                    }
+                  };
+
+                  this.recognition = rec;
+                }
+
+                safeStartVoice() {
+                  if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+                    const pill = document.getElementById('aiStatusPill');
+                    if (pill) pill.innerText = "اكتب الشرح بالكيبورد ⌨️";
+                    return;
+                  }
+
+                  this.primeMicrophoneHardware();
+
+                  if (this.recognition) {
+                    try { this.recognition.abort(); } catch(e) {}
+                    this.recognition = null;
+                  }
+
+                  this.createRecognitionInstance();
+
+                  try {
+                    this.recognition.start();
+                    this.isVoiceActive = true;
+                    this.updateMicUI(true);
+                  } catch(err) {
+                    console.warn("safeStartVoice notice:", err);
+                  }
+                }
+
+                safeStopVoice() {
+                  if (this.recognition) {
+                    try { this.recognition.abort(); } catch(e) {}
+                    this.recognition = null;
+                  }
+                  this.isVoiceActive = false;
+                  this.updateMicUI(false);
+                }
+
+                // زر التحكم اليدوي بالمايك (تشغيل / إيقاف)
+                toggleMicManual() {
+                  soundFx.playClick();
+                  if (this.userWantsVoice && this.isVoiceActive) {
+                    this.userWantsVoice = false;
+                    this.safeStopVoice();
+                    this.updateMicUI(false);
+                  } else {
+                    this.userWantsVoice = true;
+                    this.safeStartVoice();
+                    this.updateMicUI(true);
+                  }
+                }
+
+                updateMicUI(active) {
+                  const mic = document.getElementById('micIndicator');
+                  const pill = document.getElementById('aiStatusPill');
+                  const hint = document.getElementById('micActionHint');
+                  if (mic) {
+                    if (active) {
+                      mic.className = "w-14 h-14 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xl shadow-lg ring-4 ring-emerald-400/40 animate-pulse cursor-pointer transition active:scale-95";
+                      mic.title = "انقر لإيقاف الميكروفون مؤقتاً";
+                    } else {
+                      mic.className = "w-14 h-14 rounded-full bg-slate-700 hover:bg-slate-600 text-emerald-400 flex items-center justify-center text-xl shadow-lg ring-4 ring-white/10 cursor-pointer transition active:scale-95";
+                      mic.title = "انقر لبدء التحدث والشرح";
+                    }
+                  }
+                  if (hint) {
+                    if (active) {
+                      hint.innerText = "جارِ الاستماع...";
+                      hint.className = "text-[9px] font-black text-emerald-300 mt-1 animate-pulse";
+                    } else {
+                      hint.innerText = "اضغط للتحدث";
+                      hint.className = "text-[9px] font-black text-amber-300 mt-1";
+                    }
+                  }
+                  if (pill) {
+                    if (active) {
+                      pill.innerText = "المايك يستمع الآن.. تحدث بحرية! 🎙️⚡";
+                      pill.className = "text-emerald-400 font-mono text-[10px] animate-pulse";
+                    } else {
+                      pill.innerText = "المايك متوقف (اضغط للتحدث) 🎙️";
+                      pill.className = "text-amber-300 font-mono text-[10px]";
+                    }
+                  }
+                }
+
+                speak(text) {
+                  if (!this.progress.soundEnabled) return;
+                  if ('speechSynthesis' in window) {
+                    try {
+                      window.speechSynthesis.cancel();
+                      const ut = new SpeechSynthesisUtterance(text);
+                      ut.lang = 'ar-SA';
+                      ut.rate = 1.1;
+                      window.speechSynthesis.speak(ut);
+                    } catch(e) {}
+                  }
+                }
+
+                clean(t) {
+                  return (t || '')
+                    .replace(/[\u064B-\u065F\u0670]/g, '')
+                    .replace(/[ـ]/g, '')
+                    .replace(/[إأآٱ]/g, 'ا')
+                    .replace(/ة/g, 'ه')
+                    .replace(/ى/g, 'ي')
+                    .replace(/[ءئؤ]/g, 'ا')
+                    .replace(/[\.,\/#!$%\^&\*;:{}=\-_`~()؟"']/g, ' ')
+                    .toLowerCase()
+                    .trim();
+                }
+
+                stem(w) {
+                  let s = this.clean(w);
+                  if (s.length <= 2) return s;
+                  if (s.startsWith('ال') && s.length > 4) s = s.substring(2);
+                  if ((s.startsWith('و') || s.startsWith('ف') || s.startsWith('ب') || s.startsWith('ك') || s.startsWith('ل')) && s.length > 3) {
+                    s = s.substring(1);
+                    if (s.startsWith('ال') && s.length > 4) s = s.substring(2);
+                  }
+                  if ((s.startsWith('بي') || s.startsWith('بت') || s.startsWith('بن') || s.startsWith('ها') || s.startsWith('مي') || s.startsWith('مت')) && s.length > 4) {
+                    s = s.substring(2);
+                  }
+                  const suffixes = ['ات', 'ين', 'ون', 'ية', 'يه', 'ها', 'هم', 'كم', 'نا', 'وا', 'ي', 'ه', 'ك', 'ان'];
+                  for (let suf of suffixes) {
+                    if (s.endsWith(suf) && s.length > suf.length + 2) {
+                      s = s.substring(0, s.length - suf.length);
+                      break;
+                    }
+                  }
+                  return s;
+                }
+
+                phonetic(w) {
+                  let s = this.stem(w);
+                  return s.replace(/[ص]/g, 'س')
+                          .replace(/[ضظذ]/g, 'ز')
+                          .replace(/[ط]/g, 'ت')
+                          .replace(/[ة]/g, 'ه')
+                          .replace(/[ى]/g, 'ي')
+                          .replace(/[إأآءئؤ]/g, 'ا')
+                          .replace(/[ث]/g, 'س');
+                }
+
+                levenshtein(a, b) {
+                  if (a === b) return 0;
+                  if (!a.length) return b.length;
+                  if (!b.length) return a.length;
+                  const d = [];
+                  for (let i = 0; i <= a.length; i++) d[i] = [i];
+                  for (let j = 0; j <= b.length; j++) d[0][j] = j;
+                  for (let i = 1; i <= a.length; i++) {
+                    for (let j = 1; j <= b.length; j++) {
+                      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                      d[i][j] = Math.min(
+                        d[i - 1][j] + 1,
+                        d[i][j - 1] + 1,
+                        d[i - 1][j - 1] + cost
+                      );
+                    }
+                  }
+                  return d[a.length][b.length];
+                }
+
+                isSimilarWord(spoken, target) {
+                  if (!spoken || !target) return false;
+                  const cSpoken = this.clean(spoken);
+                  const cTarget = this.clean(target);
+                  if (cSpoken === cTarget) return true;
+
+                  const sSpoken = this.stem(cSpoken);
+                  const sTarget = this.stem(cTarget);
+                  if (sSpoken === sTarget) return true;
+
+                  if (sSpoken.length >= 3 && sTarget.length >= 3) {
+                    if (sSpoken.includes(sTarget) || sTarget.includes(sSpoken)) return true;
+                    if (cSpoken.includes(cTarget) || cTarget.includes(cSpoken)) return true;
+                  }
+
+                  const pSpoken = this.phonetic(sSpoken);
+                  const pTarget = this.phonetic(sTarget);
+                  if (pSpoken === pTarget) return true;
+                  if (pSpoken.length >= 3 && pTarget.length >= 3 && (pSpoken.includes(pTarget) || pTarget.includes(pSpoken))) return true;
+
+                  const maxL = Math.max(sSpoken.length, sTarget.length);
+                  if (maxL >= 3) {
+                    const dist = this.levenshtein(sSpoken, sTarget);
+                    if (maxL <= 4 && dist <= 1) return true;
+                    if (maxL >= 5 && dist <= 2) return true;
+                    if ((maxL - dist) / maxL >= 0.65) return true;
+                  }
+
+                  const pMaxL = Math.max(pSpoken.length, pTarget.length);
+                  if (pMaxL >= 3) {
+                    const pDist = this.levenshtein(pSpoken, pTarget);
+                    if (pMaxL <= 4 && pDist <= 1) return true;
+                    if (pMaxL >= 5 && pDist <= 2) return true;
+                    if ((pMaxL - pDist) / pMaxL >= 0.65) return true;
+                  }
+
+                  return false;
+                }
+
+                matchesClue(cleanedText, words, hint) {
+                  const cHint = this.clean(hint);
+                  if (!cHint) return false;
+                  if (cleanedText.includes(cHint)) return true;
+
+                  const hintWords = cHint.split(/\s+/).filter(w => w.length > 1);
+                  if (hintWords.length === 1) {
+                    const target = hintWords[0];
+                    for (let w of words) {
+                      if (this.isSimilarWord(w, target)) return true;
+                    }
+                  } else {
+                    for (let hw of hintWords) {
+                      for (let w of words) {
+                        if (this.isSimilarWord(w, hw)) return true;
+                      }
+                    }
+                  }
+                  return false;
+                }
+
+                isWordInText(text, targetWord) {
+                  const cTarget = this.clean(targetWord);
+                  if (cTarget.length < 2) return false;
+                  const cText = this.clean(text);
+                  if (cTarget.includes(' ')) {
+                    return cText.includes(cTarget);
+                  }
+                  const words = cText.split(/\s+/);
+                  const sTarget = this.stem(cTarget);
+                  for (let w of words) {
+                    const cW = this.clean(w);
+                    const sW = this.stem(cW);
+                    if (cW === cTarget || sW === sTarget) return true;
+                  }
+                  return false;
+                }
+
+                promptTextInput() {
+                  const input = prompt("💬 اكتب شرحك أو وصفك للكلمة هنا ليحلله الذكاء الاصطناعي:");
+                  if (input && input.trim()) {
+                    this.sessionFinalTranscript = (this.sessionFinalTranscript + ' ' + input.trim()).trim();
+                    this.processRealtimeSpeech(this.sessionFinalTranscript, []);
+                  }
+                }
+
+                processRealtimeSpeech(rawText, alternativeTranscripts = []) {
+                  if (!this.isPlaying || this.isSuccessApproved || !this.activeStage) return;
+
+                  const transcriptBox = document.getElementById('playTranscript');
+                  if (transcriptBox && rawText.trim()) {
+                    transcriptBox.innerText = `"${rawText.trim()}"`;
+                  }
+
+                  const cleanedText = this.clean(rawText);
+                  let words = cleanedText.split(/\s+/).filter(w => w.length > 1);
+
+                  if (alternativeTranscripts && alternativeTranscripts.length > 0) {
+                    for (let alt of alternativeTranscripts) {
+                      const cAlt = this.clean(alt);
+                      const altW = cAlt.split(/\s+/).filter(w => w.length > 1);
+                      words = words.concat(altW);
+                    }
+                  }
+
+                  this.accumulatedWordsCount = Math.max(this.accumulatedWordsCount || 0, words.length);
+
+                  // 1. فحص الكلمات الممنوعة
+                  if (this.isWordInText(cleanedText, this.activeStage.w)) {
+                    this.onBust(`نطقت الكلمة نفسها (${this.activeStage.w})!`);
+                    return;
+                  }
+
+                  const activeTaboos = this.activeStage.t.slice(0, this.activeWorldCfg.taboos);
+                  for (let taboo of activeTaboos) {
+                    if (this.isWordInText(cleanedText, taboo)) {
+                      this.onBust(`نطقت كلمة ممنوعة (${taboo})!`);
+                      return;
+                    }
+                  }
+
+                  // 2. مطابقة الدلالات
+                  this.activeStage.h.forEach(hint => {
+                    if (!this.detectedCluesSet.has(hint)) {
+                      if (this.matchesClue(cleanedText, words, hint)) {
+                        this.detectedCluesSet.add(hint);
+                        soundFx.playClueDetected();
+                      }
+                    }
+                  });
+
+                  // 3. مطابقة مفردات التصنيف
+                  const categoryTerms = CATEGORY_LEXICONS[this.activeStage.c] || [];
+                  categoryTerms.forEach(term => {
+                    if (!this.detectedDomainSet.has(term)) {
+                      for (let w of words) {
+                        if (this.isSimilarWord(w, term)) {
+                          this.detectedDomainSet.add(term);
+                          break;
+                        }
+                      }
+                    }
+                  });
+
+                  // 4. تحديث مؤشر الاقتناع
+                  this.renderDetectedCluesUI();
+                  this.updateConfidence(this.accumulatedWordsCount);
+                }
+
+                triggerAutoSuccess() {
+                  if (this.isSuccessApproved) return;
+                  this.isSuccessApproved = true;
+                  clearInterval(this.timerInterval);
+
+                  const nextBtn = document.getElementById('btnNextStage');
+                  const nextLabel = document.getElementById('btnNextLabel');
+                  const nextIcon = document.getElementById('btnNextIcon');
+
+                  nextBtn.disabled = false;
+                  nextBtn.className = "btn-3d py-3.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-2xl border-b-[5px] border-emerald-800 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-pointer shadow-lg btn-next-ready";
+                  nextIcon.className = "fa-solid fa-arrow-left text-sm";
+                  nextLabel.innerText = "التالي (تم القبول بامتياز! 🚀)";
+
+                  document.getElementById('aiConfidencePct').innerText = "100%";
+                  document.getElementById('aiConfidenceBar').style.width = "100%";
+                  document.getElementById('aiStatusPill').innerText = "تم التحقق والقبول بنجاح! 🎯";
+
+                  soundFx.playSuccessFanfare();
+                  this.speak(`أحسنت الشرح! لقد عرفت أنك تقصد ${this.activeStage.w} بدقة تامة يا معلم!`);
+                  try { confetti({ particleCount: 90, spread: 60, origin: { y: 0.7 } }); } catch(e) {}
+
+                  this.autoTransitionTimer = setTimeout(() => {
+                    if (this.isSuccessApproved) {
+                      this.onNextClicked();
+                    }
+                  }, 2200);
+                }
+
+                onNextClicked() {
+                  soundFx.playClick();
+                  if (this.autoTransitionTimer) clearTimeout(this.autoTransitionTimer);
+                  this.userWantsVoice = false;
+                  this.safeStopVoice();
+
+                  let stars = 3;
+                  if (this.busts === 1) stars = 2;
+                  else if (this.busts >= 2) stars = 1;
+
+                  this.progress.starsBalance += 25;
+                  this.progress.completedStages[String(this.currentStageNum)] = true;
+
+                  const prevStars = this.progress.stars[this.currentStageNum] || 0;
+                  if (stars > prevStars) {
+                    this.progress.stars[this.currentStageNum] = stars;
+                  }
+
+                  if (this.currentStageNum === this.progress.maxUnlocked && this.currentStageNum < 200) {
+                    this.progress.maxUnlocked++;
+                  }
+                  this.saveProgress();
+
+                  document.getElementById('winStarsAwarded').innerText = '⭐'.repeat(stars);
+                  document.getElementById('winStageLabel').innerText = `تم قبول شرح المرحلة ${this.currentStageNum} بذكاء خارق!`;
+                  document.getElementById('nextLevelUnlockText').innerText = `مرحلة ${Math.min(200, this.currentStageNum + 1)} مفتوحة الآن 🔓`;
+
+                  this.showScreen('screenWin');
+                }
+
+                onBust(reason) {
+                  this.busts++;
+                  soundFx.playTabooAlarm();
+                  this.speak("قفشتك يا معلم! كلمة ممنوعة!");
+                  alert(`🚨 قفشتك الحكم الآلي!\n${reason}\nاحتسبت مخالفة ونقصت نجمة!`);
+                  document.getElementById('playStarsDisplay').innerText = this.busts >= 2 ? '⭐' : (this.busts === 1 ? '⭐⭐' : '⭐⭐⭐');
+                  this.detectedCluesSet.clear();
+                  this.detectedDomainSet.clear();
+                  this.accumulatedTranscript = '';
+                  this.sessionFinalTranscript = '';
+                  this.accumulatedWordsCount = 0;
+                  document.getElementById('aiConfidencePct').innerText = '0%';
+                  document.getElementById('aiConfidenceBar').style.width = '0%';
+                  this.renderDetectedCluesUI();
+                }
+
+                startStage(lvl) {
+                  try {
+                    soundFx.playClick();
+                    const validLvl = Math.max(1, Math.min(200, parseInt(lvl || 1, 10)));
+                    this.currentStageNum = validLvl;
+                    this.activeStage = RAW_STAGES[validLvl - 1] || RAW_STAGES[0];
+                    this.activeWorldNum = this.getWorldForStage(validLvl);
+                    this.activeWorldCfg = WORLDS_CONFIG[this.activeWorldNum];
+                    this.busts = 0;
+                    this.isPlaying = true;
+                    this.isSuccessApproved = false;
+                    this.userWantsVoice = false; // المايك لا يبدأ تلقائياً
+                    this.detectedCluesSet.clear();
+                    this.detectedDomainSet.clear();
+                    this.accumulatedTranscript = '';
+                    this.sessionFinalTranscript = '';
+                    this.accumulatedWordsCount = 0;
+
+                    document.getElementById('playStageNum').innerText = `#${validLvl}`;
+                    document.getElementById('playWorldTag').innerText = this.activeWorldCfg.title.split(':')[1] || '';
+                    document.getElementById('playCategory').innerText = this.activeStage.c;
+                    document.getElementById('playWord').innerText = this.activeStage.w;
+                    document.getElementById('playStarsDisplay').innerText = '⭐⭐⭐';
+                    
+                    const tabooCountLabel = document.getElementById('playTabooCountLabel');
+                    if (tabooCountLabel) {
+                      tabooCountLabel.innerText = `${this.activeWorldCfg.taboos} كلمات ممنوعة`;
+                    }
+
+                    const taboosBox = document.getElementById('playTaboosContainer');
+                    if (taboosBox) {
+                      taboosBox.innerHTML = '';
+                      const activeTaboos = this.activeStage.t.slice(0, this.activeWorldCfg.taboos);
+                      activeTaboos.forEach(w => {
+                        const span = document.createElement('span');
+                        span.className = 'bg-white text-red-700 px-2.5 py-1 rounded-lg border border-red-300 text-xs font-black shadow-sm flex items-center space-x-1 space-x-reverse';
+                        span.innerHTML = `<i class="fa-solid fa-xmark text-[10px] text-red-500"></i><span>${w}</span>`;
+                        taboosBox.appendChild(span);
+                      });
+                    }
+
+                    const lvlKey = String(validLvl);
+                    const savedRevealed = this.progress.revealedCluesMap[lvlKey] || [];
+                    savedRevealed.forEach(h => this.detectedCluesSet.add(h));
+
+                    this.renderRevealedHintsUI();
+                    this.renderDetectedCluesUI();
+
+                    document.getElementById('aiConfidencePct').innerText = '0%';
+                    document.getElementById('aiConfidenceBar').style.width = '0%';
+
+                    // تحديث واجهة المايك لتبين أنه متوقف وبانتظار النقر
+                    this.safeStopVoice();
+                    this.updateMicUI(false);
+
+                    const nextBtn = document.getElementById('btnNextStage');
+                    if (nextBtn) {
+                      nextBtn.disabled = true;
+                      nextBtn.className = "btn-3d py-3.5 bg-slate-800 text-gray-500 rounded-2xl border-b-[4px] border-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 space-x-reverse cursor-not-allowed opacity-60 transition-all duration-300";
+                    }
+                    const nextIcon = document.getElementById('btnNextIcon');
+                    if (nextIcon) nextIcon.className = "fa-solid fa-hourglass-half";
+                    const nextLabel = document.getElementById('btnNextLabel');
+                    if (nextLabel) nextLabel.innerText = "في انتظار الشرح... (0%)";
+
+                    const transcriptBox = document.getElementById('playTranscript');
+                    if (transcriptBox) {
+                      transcriptBox.innerText = 'اضغط على زر الميكروفون بالأعلى وتحدث بحرية ليشرح الذكاء الاصطناعي كلماتك...';
+                    }
+
+                    this.showScreen('screenPlay');
+                    soundFx.playStageStart();
+                    this.updateConfidence(0);
+
+                    // بدء عداد المرحلة فقط دون تشغيل المايك
+                    this.startTimer();
+                  } catch(err) {
+                    console.error("Critical stage start error:", err);
+                    this.showScreen('screenPlay');
+                    this.startTimer();
+                    this.safeStopVoice();
+                  }
+                }
+
+                startTimer() {
+                  clearInterval(this.timerInterval);
+                  this.timer = this.activeWorldCfg.time;
+                  document.getElementById('playTimerText').innerText = `${this.timer}s`;
+
+                  this.timerInterval = setInterval(() => {
+                    this.timer--;
+                    document.getElementById('playTimerText').innerText = `${this.timer}s`;
+                    if (this.timer <= 0) {
+                      clearInterval(this.timerInterval);
+                      soundFx.playTabooAlarm();
+                      this.userWantsVoice = false;
+                      this.safeStopVoice();
+                      this.speak("انتهى وقت المرحلة ولم تقدم شرحاً كافياً!");
+                      alert("⏳ انتهى الوقت! حاول مجدداً واذكر دلالات أدق.");
+                      this.showScreen('screenMap');
+                    }
+                  }, 1000);
+                }
+
+                playNextStage() {
+                  soundFx.playClick();
+                  if (this.currentStageNum < 200) {
+                    this.startStage(this.currentStageNum + 1);
+                  } else {
+                    alert("🏆 مبروك! ختمت الـ 200 مرحلة بنجاح ساحق!");
+                    this.showScreen('screenMap');
+                  }
+                }
+
+                abandonStage() {
+                  soundFx.playClick();
+                  clearInterval(this.timerInterval);
+                  this.isPlaying = false;
+                  this.userWantsVoice = false;
+                  if (this.autoTransitionTimer) clearTimeout(this.autoTransitionTimer);
+                  this.safeStopVoice();
+                  this.showScreen('screenMap');
+                }
+
+                resumeGame() {
+                  soundFx.playClick();
+                  this.startStage(this.progress.maxUnlocked || 1);
+                }
+
+                getWorldForStage(lvl) {
+                  if (lvl <= 40) return 1;
+                  if (lvl <= 80) return 2;
+                  if (lvl <= 120) return 3;
+                  if (lvl <= 160) return 4;
+                  return 5;
+                }
+
+                filterWorld(wNum) {
+                  soundFx.playClick();
+                  this.selectedWorld = wNum;
+                  for (let i = 1; i <= 5; i++) {
+                    const btn = document.getElementById(`tabWorld${i}`);
+                    if (btn) {
+                      if (i === wNum) {
+                        btn.className = 'px-3 py-1.5 rounded-xl font-black text-xs whitespace-nowrap bg-indigo-600 text-white shadow';
+                      } else {
+                        btn.className = 'px-3 py-1.5 rounded-xl font-black text-xs whitespace-nowrap bg-white/10 text-gray-300';
+                      }
+                    }
+                  }
+                  const cfg = WORLDS_CONFIG[wNum];
+                  document.getElementById('worldNameTitle').innerText = cfg.title;
+                  document.getElementById('worldRuleDesc').innerText = cfg.desc;
+                  this.renderMap();
+                }
+
+                renderMap() {
+                  const container = document.getElementById('stagesScrollContainer');
+                  if (!container) return;
+                  container.innerHTML = '';
+                  const cfg = WORLDS_CONFIG[this.selectedWorld];
+                  const [startLvl, endLvl] = cfg.range;
+
+                  for (let i = startLvl; i <= endLvl; i++) {
+                    const isUnlocked = i <= this.progress.maxUnlocked;
+                    const isCurrent = i === this.progress.maxUnlocked;
+                    const stars = this.progress.stars[i] || 0;
+                    const isCompleted = !!this.progress.completedStages[String(i)];
+
+                    const btn = document.createElement('div');
+                    btn.className = 'stage-node flex flex-col items-center justify-center p-2 rounded-2xl cursor-pointer relative';
+
+                    if (isCurrent) {
+                      btn.classList.add('bg-emerald-500/20', 'border-2', 'border-emerald-400');
+                    } else if (isUnlocked) {
+                      btn.classList.add('bg-indigo-950/60', 'border', 'border-indigo-400/40', 'hover:bg-indigo-900/60');
+                    } else {
+                      btn.classList.add('bg-slate-800/40', 'border', 'border-white/5', 'opacity-50', 'cursor-not-allowed');
+                    }
+
+                    let starsHtml = '';
+                    if (stars > 0) {
+                      starsHtml = `<div class="text-[9px] text-amber-300 -mt-0.5">${'⭐'.repeat(stars)}</div>`;
+                    } else if (isUnlocked) {
+                      starsHtml = `<div class="text-[9px] text-emerald-300 font-bold -mt-0.5">${isCurrent ? 'العب!' : (isCompleted ? 'مكتمل ✓' : 'جاهز')}</div>`;
+                    } else {
+                      starsHtml = `<div class="text-[9px] text-gray-400 -mt-0.5">🔒</div>`;
+                    }
+
+                    btn.innerHTML = `
+                      <div class="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${isCurrent ? 'bg-emerald-500 text-white shadow-lg' : (isUnlocked ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-gray-400')}">
+                        ${i}
+                      </div>
+                      ${starsHtml}
+                    `;
+
+                    if (isUnlocked) {
+                      btn.setAttribute('onclick', `window.game.startStage(${i})`);
+                      btn.onclick = () => window.game.startStage(i);
+                    }
+                    container.appendChild(btn);
+                  }
+                }
+
+                showScreen(id) {
+                  soundFx.playClick();
+                  ['screenHome', 'screenMap', 'screenPlay', 'screenWin'].forEach(s => {
+                    const el = document.getElementById(s);
+                    if (el) el.classList.add('hidden');
+                  });
+                  const target = document.getElementById(id);
+                  if (target) target.classList.remove('hidden');
+
+                  this.currentScreen = id;
+                  if (id === 'screenMap') {
+                    this.renderMap();
+                  }
+                }
+
+                showHome() {
+                  soundFx.playClick();
+                  clearInterval(this.timerInterval);
+                  this.isPlaying = false;
+                  this.userWantsVoice = false;
+                  if (this.autoTransitionTimer) clearTimeout(this.autoTransitionTimer);
+                  this.safeStopVoice();
+                  this.showScreen('screenHome');
+                }
+              }
+
+              // ربط المحرك عالمياً
+              window.game = new SuperAIGameEngine();
             </script>
           </body>
           </html>
           EOF
 
+          # 3. إعداد وضبط Tailwind CSS لمسح ملف index.html وتوليد ملف CSS مدمج محلياً
+          cat << 'EOF' > tailwind.config.js
+          module.exports = {
+            content: ["./www/**/*.{html,js}", "./www/*.html"],
+            theme: {
+              extend: {
+                fontFamily: {
+                  cairo: ['Cairo', 'sans-serif'],
+                  tajawal: ['Tajawal', 'sans-serif'],
+                }
+              },
+            },
+            plugins: [],
+          }
+          EOF
+
+          cat << 'EOF' > input.css
+          @tailwind base;
+          @tailwind components;
+          @tailwind utilities;
+          EOF
+
+          # إنشاء ملف Tailwind CSS المصغر محلياً داخل www/css/tailwind.min.css
+          npx tailwindcss -i input.css -o www/css/tailwind.min.css --minify
+
       - name: Initialize Capacitor & Configure Android Project
         run: |
-          npm init -y
           npm install @capacitor/core@6.0.0 @capacitor/cli@6.0.0 @capacitor/android@6.0.0 @capacitor/app@6.0.0
           npx cap init "QoolYaM3alemPro" "com.qoolyam3alem.pro" --web-dir www
           npx cap add android
           npx cap sync android
 
-      - name: Inject Vosk Dependencies into Gradle
-        run: |
-          BUILD_GRADLE="android/app/build.gradle"
-          sed -i '/dependencies {/a \    implementation "net.java.dev.jna:jna:5.13.0@aar"\n    implementation "com.alphacephei:vosk-android:0.3.47"' $BUILD_GRADLE
-
-      - name: Configure Android Permissions & Manifest
+      - name: Grant Microphone & Audio Permissions to Android Manifest & Native Bridge
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />' $MANIFEST
+          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' $MANIFEST
 
-      - name: Generate MainActivity with Resumable Downloader & Auto-Link
-        run: |
+          # Inject Native Runtime Permission Request into MainActivity.java
           MAIN_ACTIVITY="android/app/src/main/java/com/qoolyam3alem/pro/MainActivity.java"
           cat << 'EOF' > $MAIN_ACTIVITY
           package com.qoolyam3alem.pro;
@@ -378,368 +1776,22 @@ jobs:
           import android.Manifest;
           import android.content.pm.PackageManager;
           import android.os.Bundle;
-          import android.os.Handler;
-          import android.os.Looper;
-          import android.webkit.JavascriptInterface;
-          import android.webkit.PermissionRequest;
-          import android.webkit.WebChromeClient;
-          import android.webkit.WebView;
-
           import com.getcapacitor.BridgeActivity;
 
-          import org.json.JSONObject;
-          import org.vosk.Model;
-          import org.vosk.Recognizer;
-          import org.vosk.android.RecognitionListener;
-          import org.vosk.android.SpeechService;
-
-          import java.io.BufferedInputStream;
-          import java.io.File;
-          import java.io.FileInputStream;
-          import java.io.FileOutputStream;
-          import java.io.InputStream;
-          import java.io.OutputStream;
-          import java.net.HttpURLConnection;
-          import java.net.URL;
-          import java.util.zip.ZipEntry;
-          import java.util.zip.ZipInputStream;
-
-          public class MainActivity extends BridgeActivity implements RecognitionListener {
-              private Model model;
-              private SpeechService speechService;
-              private boolean isModelLoaded = false;
-              private final Handler mainHandler = new Handler(Looper.getMainLooper());
-
-              // URL النموذج الصوتي (حزمة اللغة العربية)
-              private static final String MODEL_DOWNLOAD_URL = "https://alphacephei.com/vosk/models/vosk-model-ar-mgb2-0.4.zip";
-              private static final String MODEL_FOLDER_NAME = "model-ar";
-
-              private boolean isDownloadPaused = false;
-              private boolean isDownloading = false;
-              private Thread downloadThread;
-
+          public class MainActivity extends BridgeActivity {
               @Override
               public void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-
                   if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                       requestPermissions(new String[]{
                           Manifest.permission.RECORD_AUDIO,
                           Manifest.permission.MODIFY_AUDIO_SETTINGS
                       }, 1001);
                   }
-
-                  // فحص هل البيانات موجودة في مجلد اللعبة
-                  checkAndLoadLocalModel();
-              }
-
-              @Override
-              public void onStart() {
-                  super.onStart();
-                  if (this.bridge != null && this.bridge.getWebView() != null) {
-                      WebView webView = this.bridge.getWebView();
-                      webView.setWebChromeClient(new WebChromeClient() {
-                          @Override
-                          public void onPermissionRequest(final PermissionRequest request) {
-                              runOnUiThread(() -> request.grant(request.getResources()));
-                          }
-                      });
-                      webView.addJavascriptInterface(new NativeSpeechBridge(), "AndroidSpeech");
-                  }
-              }
-
-              private File getGameStorageDir() {
-                  // استخدام مجلد اللعبة المخصص في الذاكرة الخارجية (Android/data/.../files أو obb)
-                  File dir = getExternalFilesDir(null);
-                  if (dir == null) {
-                      dir = getFilesDir();
-                  }
-                  return dir;
-              }
-
-              private File getModelDirectory() {
-                  return new File(getGameStorageDir(), MODEL_FOLDER_NAME);
-              }
-
-              private void checkAndLoadLocalModel() {
-                  File modelDir = getModelDirectory();
-                  // التأكد من أن المجلد موجود ويحتوي على ملفات النموذج
-                  if (modelDir.exists() && new File(modelDir, "conf/model.conf").exists()) {
-                      loadModelFromPath(modelDir.getAbsolutePath());
-                  } else {
-                      isModelLoaded = false;
-                  }
-              }
-
-              private void loadModelFromPath(String path) {
-                  new Thread(() -> {
-                      try {
-                          model = new Model(path);
-                          isModelLoaded = true;
-                          mainHandler.post(() -> {
-                              evaluateJavascript("if(window.onNativeModelReady){window.onNativeModelReady();}");
-                          });
-                      } catch (Exception e) {
-                          e.printStackTrace();
-                          isModelLoaded = false;
-                      }
-                  }).start();
-              }
-
-              // ==========================================
-              // نظام التحميل القابل للتوقف والاستئناف (RESUMABLE DOWNLOADER)
-              // ==========================================
-              public void startModelDownload() {
-                  if (isDownloading) return;
-                  isDownloadPaused = false;
-                  isDownloading = true;
-
-                  downloadThread = new Thread(() -> {
-                      File storageDir = getGameStorageDir();
-                      File zipFile = new File(storageDir, "model_temp.zip");
-                      long downloadedBytes = 0;
-
-                      if (zipFile.exists()) {
-                          downloadedBytes = zipFile.length();
-                      }
-
-                      try {
-                          URL url = new URL(MODEL_DOWNLOAD_URL);
-                          HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                          conn.setConnectTimeout(15000);
-                          conn.setReadTimeout(15000);
-
-                          // دعم الاستئناف عبر HTTP Range
-                          if (downloadedBytes > 0) {
-                              conn.setRequestProperty("Range", "bytes=" + downloadedBytes + "-");
-                          }
-
-                          int responseCode = conn.getResponseCode();
-                          long totalSize = conn.getContentLengthLong();
-                          if (downloadedBytes > 0 && responseCode == HttpURLConnection.HTTP_PARTIAL) {
-                              totalSize += downloadedBytes;
-                          }
-
-                          InputStream input = new BufferedInputStream(conn.getInputStream());
-                          OutputStream output = new FileOutputStream(zipFile, downloadedBytes > 0);
-
-                          byte[] buffer = new byte[8192];
-                          int count;
-                          long startTime = System.currentTimeMillis();
-                          long lastUpdateTime = 0;
-                          long bytesSinceLastUpdate = 0;
-
-                          while ((count = input.read(buffer)) != -1) {
-                              if (isDownloadPaused) {
-                                  output.flush();
-                                  output.close();
-                                  input.close();
-                                  conn.disconnect();
-                                  return;
-                              }
-
-                              output.write(buffer, 0, count);
-                              downloadedBytes += count;
-                              bytesSinceLastUpdate += count;
-
-                              long now = System.currentTimeMillis();
-                              if (now - lastUpdateTime > 300) {
-                                  long diffSec = Math.max(1, (now - lastUpdateTime));
-                                  long speedKb = (bytesSinceLastUpdate * 1000) / (diffSec * 1024);
-                                  lastUpdateTime = now;
-                                  bytesSinceLastUpdate = 0;
-
-                                  int pct = (totalSize > 0) ? (int) ((downloadedBytes * 100) / totalSize) : 0;
-                                  int downMb = (int) (downloadedBytes / (1024 * 1024));
-                                  int totMb = (int) (totalSize / (1024 * 1024));
-
-                                  final int fPct = pct;
-                                  final int fDownMb = downMb;
-                                  final int fTotMb = totMb;
-                                  final long fSpeed = speedKb;
-
-                                  mainHandler.post(() -> {
-                                      evaluateJavascript("if(window.onNativeDownloadProgress){window.onNativeDownloadProgress(" +
-                                          fPct + "," + fDownMb + "," + fTotMb + "," + fSpeed + ");}");
-                                  });
-                              }
-                          }
-
-                          output.flush();
-                          output.close();
-                          input.close();
-                          conn.disconnect();
-
-                          // اكتمال التنزيل -> فك الضغط إلى مجلد اللعبة
-                          mainHandler.post(() -> {
-                              evaluateJavascript("if(window.onNativeDownloadComplete){window.onNativeDownloadComplete();}");
-                          });
-
-                          unzipModel(zipFile, getModelDirectory());
-                          zipFile.delete(); // حذف الملف المؤقت بعد فك الضغط
-
-                          // ربط النموذج الصوتي بعد التثبيت
-                          loadModelFromPath(getModelDirectory().getAbsolutePath());
-
-                      } catch (Exception e) {
-                          e.printStackTrace();
-                      } finally {
-                          isDownloading = false;
-                      }
-                  });
-
-                  downloadThread.start();
-              }
-
-              public void pauseModelDownload() {
-                  isDownloadPaused = true;
-                  isDownloading = false;
-              }
-
-              public void resumeModelDownload() {
-                  startModelDownload();
-              }
-
-              private void unzipModel(File zipFile, File targetDir) {
-                  try {
-                      if (!targetDir.exists()) targetDir.mkdirs();
-
-                      ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
-                      ZipEntry entry;
-                      byte[] buffer = new byte[8192];
-
-                      while ((entry = zis.getNextEntry()) != null) {
-                          String name = entry.getName();
-                          // إزالة اسم المجلد الجذري من داخل الـ zip إن وُجد
-                          if (name.contains("/")) {
-                              name = name.substring(name.indexOf("/") + 1);
-                          }
-                          if (name.isEmpty()) continue;
-
-                          File newFile = new File(targetDir, name);
-                          if (entry.isDirectory()) {
-                              newFile.mkdirs();
-                          } else {
-                              new File(newFile.getParent()).mkdirs();
-                              FileOutputStream fos = new FileOutputStream(newFile);
-                              int len;
-                              while ((len = zis.read(buffer)) > 0) {
-                                  fos.write(buffer, 0, len);
-                              }
-                              fos.close();
-                          }
-                          zis.closeEntry();
-                      }
-                      zis.close();
-                  } catch (Exception e) {
-                      e.printStackTrace();
-                  }
-              }
-
-              // ==========================================
-              // محرك التعرف الصوتي (VOSK ENGINE)
-              // ==========================================
-              public void startListening() {
-                  if (!isModelLoaded || model == null) return;
-                  try {
-                      stopListening();
-                      Recognizer recognizer = new Recognizer(model, 16000.0f);
-                      speechService = new SpeechService(recognizer, 16000.0f);
-                      speechService.startListening(this);
-                  } catch (Exception e) {
-                      e.printStackTrace();
-                  }
-              }
-
-              public void stopListening() {
-                  if (speechService != null) {
-                      speechService.stop();
-                      speechService.shutdown();
-                      speechService = null;
-                  }
-              }
-
-              @Override
-              public void onPartialResult(String hypothesis) {
-                  try {
-                      JSONObject obj = new JSONObject(hypothesis);
-                      String partial = obj.optString("partial", "");
-                      if (!partial.trim().isEmpty()) {
-                          sendSpeechResult(partial);
-                      }
-                  } catch (Exception ignored) {}
-              }
-
-              @Override
-              public void onResult(String hypothesis) {
-                  try {
-                      JSONObject obj = new JSONObject(hypothesis);
-                      String text = obj.optString("text", "");
-                      if (!text.trim().isEmpty()) {
-                          sendSpeechResult(text);
-                      }
-                  } catch (Exception ignored) {}
-              }
-
-              @Override
-              public void onFinalResult(String hypothesis) { onResult(hypothesis); }
-              @Override
-              public void onError(Exception exception) {}
-              @Override
-              public void onTimeout() {}
-
-              private void sendSpeechResult(String text) {
-                  String escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\"", "\\\"").replace("\n", " ");
-                  evaluateJavascript("if(window.onNativeSpeechResult){window.onNativeSpeechResult('" + escaped + "');}");
-              }
-
-              private void evaluateJavascript(String script) {
-                  if (this.bridge != null && this.bridge.getWebView() != null) {
-                      this.bridge.getWebView().post(() -> {
-                          this.bridge.getWebView().evaluateJavascript(script, null);
-                      });
-                  }
-              }
-
-              public class NativeSpeechBridge {
-                  @JavascriptInterface
-                  public boolean isModelAvailable() {
-                      return isModelLoaded;
-                  }
-
-                  @JavascriptInterface
-                  public void startDownload() {
-                      mainHandler.post(() -> startModelDownload());
-                  }
-
-                  @JavascriptInterface
-                  public void pauseDownload() {
-                      mainHandler.post(() -> pauseModelDownload());
-                  }
-
-                  @JavascriptInterface
-                  public void resumeDownload() {
-                      mainHandler.post(() -> resumeModelDownload());
-                  }
-
-                  @JavascriptInterface
-                  public void startListening() {
-                      mainHandler.post(() -> MainActivity.this.startListening());
-                  }
-
-                  @JavascriptInterface
-                  public void stopListening() {
-                      mainHandler.post(() -> MainActivity.this.stopListening());
-                  }
-              }
-
-              @Override
-              public void onDestroy() {
-                  stopListening();
-                  super.onDestroy();
               }
           }
           EOF
+          echo "Native microphone permissions and auto-prompt configured successfully!"
 
       - name: Build Android Debug APK with Gradle
         run: |
@@ -747,9 +1799,9 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
-      - name: Upload Final Light APK as Artifact
+      - name: Upload Final APK as Downloadable Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: QoolYaM3alem-Light-Resumable-APK
+          name: QoolYaM3alem-SuperAI-Pro-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
